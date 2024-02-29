@@ -13,16 +13,24 @@ import { Button, View, useWindowDimensions } from 'react-native'
 import {
   Easing,
   ReduceMotion,
+  interpolate,
   runOnJS,
   useDerivedValue,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated'
 import cdt2d from 'cdt2d'
-import { palette } from './colorPalette'
+import {
+  mixedColorPalette,
+  mixedColorPalette2,
+  palette,
+  shufflePalette,
+  yellowColorPalette,
+} from './colorPalette'
+import { NoiseFunction2D, createNoise2D } from './SimplexNoise'
 
 const animationConfig = {
-  duration: 1000,
+  duration: 2000,
   easing: Easing.bezier(0.25, 0.1, 0.25, 1),
   reduceMotion: ReduceMotion.System,
 }
@@ -92,7 +100,7 @@ const ATriangle = ({
   const triangleVertices = targetVertices ?? initialVertices
   const triangles = useMemo(
     () => cdt2d(triangleVertices.map(({ x, y }) => [x, y])),
-    [triangleVertices],
+    [],
   )
   const indices = triangles.flat()
 
@@ -135,6 +143,7 @@ const ATriangle = ({
     </>
   )
 }
+
 // A function that finds a grid of ponts with R rows and C columns per width and let P mark the number of pages
 // The grid is used to create a grid of circles
 // The function returns an array of SkPoint, hsize and vSize
@@ -162,33 +171,57 @@ const createGrid = ({
     ),
   ).flat()
 
-  return { grid, hSize, vSize, pageSize: hSize * cols }
+  return { grid, hSize, vSize, pageSize: hSize * cols, totalWidth }
 }
 
 export const ColorGridTrigger: React.FC = () => {
   const { width, height } = useWindowDimensions()
   const [debug, setDebug] = useState(true)
 
+  const cols = 3,
+    rows = 3,
+    pages = 10
   const {
     grid: initialVertices,
     hSize,
+    vSize,
     pageSize,
+    totalWidth,
   } = useMemo(
-    () => createGrid({ cols: 3, rows: 2, pages: 3, width, height }),
+    () => createGrid({ cols, rows, pages, width, height }),
     [width, height],
   )
   const [vertices, setVertices] = useState<SkPoint[]>(initialVertices)
-  const colors = vertices.map((_, i) => palette[i % palette.length])
 
   const callback = () => {
     console.log('Animation completed!')
   }
 
+  const noises = useMemo(() => vertices.map(() => createNoise2D()), [vertices])
+
+  const xAmplitude = hSize * 0.3
+  const yAmplitude = vSize * 0.3
+  const frequency = 0.1
   const panLeft = () => {
-    const targetVertex = vertices.map(vertex =>
-      vec(vertex.x - pageSize, vertex.y),
-    )
-    setVertices(targetVertex)
+    const targetVertices = vertices.map((vertex, i) => {
+      const targetVector = vec(vertex.x - pageSize, vertex.y)
+
+      const isEdge =
+        vertex.x === 0 ||
+        vertex.x === width ||
+        vertex.y === 0 ||
+        vertex.y === height
+      const isOneOfLastFourVertices = i >= vertices.length - (cols + 1)
+
+      if (isEdge || isOneOfLastFourVertices) return targetVector
+
+      const noise = noises[i]
+      return vec(
+        targetVector.x + xAmplitude * noise(targetVector.x * frequency, 0),
+        targetVector.y + yAmplitude * noise(0, targetVector.y * frequency),
+      )
+    })
+    setVertices(targetVertices)
   }
 
   const panRight = () => {
@@ -197,6 +230,10 @@ export const ColorGridTrigger: React.FC = () => {
     )
     setVertices(targetVertex)
   }
+
+  const colors = vertices.map(
+    (_, i) => shufflePalette(mixedColorPalette)[i % mixedColorPalette.length],
+  )
 
   return (
     <View style={{ flex: 1 }}>

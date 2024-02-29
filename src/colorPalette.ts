@@ -231,3 +231,6 @@ const allColorPalettes = [
   ...mixedColorPalette2,
 ]
 export const palette = simpleWildShuffle(allColorPalettes, 36343232, 70)
+export const shufflePalette = (colorPalette: string[]) => {
+  return simpleWildShuffle(colorPalette, 36343232, -1)
+}
