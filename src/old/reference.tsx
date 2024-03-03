@@ -13,7 +13,7 @@ import {
 } from '@shopify/react-native-skia'
 import { useDerivedValue } from 'react-native-reanimated'
 import { Triangles } from './Triangles'
-import { createNoise2D } from './SimplexNoise'
+import { createNoise2D } from '../SimplexNoise'
 
 const points = [
   { x: 50, y: 50, color: 'red' },

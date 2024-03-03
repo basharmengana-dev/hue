@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "prepattern.app"
-               BlueprintName = "prepattern"
-               ReferencedContainer = "container:prepattern.xcodeproj">
+               BuildableName = "hue.app"
+               BlueprintName = "hue"
+               ReferencedContainer = "container:hue.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "prepatternTests.xctest"
-               BlueprintName = "prepatternTests"
-               ReferencedContainer = "container:prepattern.xcodeproj">
+               BuildableName = "hueTests.xctest"
+               BlueprintName = "hueTests"
+               ReferencedContainer = "container:hue.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "prepattern.app"
-            BlueprintName = "prepattern"
-            ReferencedContainer = "container:prepattern.xcodeproj">
+            BuildableName = "hue.app"
+            BlueprintName = "hue"
+            ReferencedContainer = "container:hue.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "prepattern.app"
-            BlueprintName = "prepattern"
-            ReferencedContainer = "container:prepattern.xcodeproj">
+            BuildableName = "hue.app"
+            BlueprintName = "hue"
+            ReferencedContainer = "container:hue.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

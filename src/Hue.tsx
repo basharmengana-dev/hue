@@ -174,7 +174,7 @@ const createGrid = ({
   return { grid, hSize, vSize, pageSize: hSize * cols, totalWidth }
 }
 
-export const ColorGridTrigger: React.FC = () => {
+export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
   const [debug, setDebug] = useState(true)
 

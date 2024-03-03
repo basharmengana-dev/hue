@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		00E356F31AD99517003FC87E /* prepatternTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 00E356F21AD99517003FC87E /* prepatternTests.m */; };
+		00E356F31AD99517003FC87E /* hueTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 00E356F21AD99517003FC87E /* hueTests.m */; };
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
-		5299E92DE12937D489F5FFD9 /* libPods-prepattern.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 53D3654668C221A60C0930DC /* libPods-prepattern.a */; };
+		5299E92DE12937D489F5FFD9 /* libPods-hue.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 53D3654668C221A60C0930DC /* libPods-hue.a */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
-		B24C56EFA8EEF0336055C8A4 /* libPods-prepattern-prepatternTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8565F9F0419F73D00DBB4177 /* libPods-prepattern-prepatternTests.a */; };
+		B24C56EFA8EEF0336055C8A4 /* libPods-hue-hueTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8565F9F0419F73D00DBB4177 /* libPods-hue-hueTests.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -22,27 +22,27 @@
 			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 13B07F861A680F5B00A75B9A;
-			remoteInfo = prepattern;
+			remoteInfo = hue;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		00E356EE1AD99517003FC87E /* prepatternTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = prepatternTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		00E356EE1AD99517003FC87E /* hueTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = hueTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		00E356F11AD99517003FC87E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		00E356F21AD99517003FC87E /* prepatternTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = prepatternTests.m; sourceTree = "<group>"; };
-		0B065D5E95EB9233799AFDC0 /* Pods-prepattern.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-prepattern.debug.xcconfig"; path = "Target Support Files/Pods-prepattern/Pods-prepattern.debug.xcconfig"; sourceTree = "<group>"; };
-		13B07F961A680F5B00A75B9A /* prepattern.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = prepattern.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		13B07FAF1A68108700A75B9A /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = prepattern/AppDelegate.h; sourceTree = "<group>"; };
-		13B07FB01A68108700A75B9A /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = AppDelegate.mm; path = prepattern/AppDelegate.mm; sourceTree = "<group>"; };
-		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = prepattern/Images.xcassets; sourceTree = "<group>"; };
-		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = prepattern/Info.plist; sourceTree = "<group>"; };
-		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = prepattern/main.m; sourceTree = "<group>"; };
-		430D667BC639EE8BEBB92618 /* Pods-prepattern.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-prepattern.release.xcconfig"; path = "Target Support Files/Pods-prepattern/Pods-prepattern.release.xcconfig"; sourceTree = "<group>"; };
-		53D3654668C221A60C0930DC /* libPods-prepattern.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-prepattern.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		7D14025AE474F394685BDAF5 /* Pods-prepattern-prepatternTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-prepattern-prepatternTests.release.xcconfig"; path = "Target Support Files/Pods-prepattern-prepatternTests/Pods-prepattern-prepatternTests.release.xcconfig"; sourceTree = "<group>"; };
-		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = prepattern/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		8565F9F0419F73D00DBB4177 /* libPods-prepattern-prepatternTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-prepattern-prepatternTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		B1F7FDD8D2A88E2A3B6B9612 /* Pods-prepattern-prepatternTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-prepattern-prepatternTests.debug.xcconfig"; path = "Target Support Files/Pods-prepattern-prepatternTests/Pods-prepattern-prepatternTests.debug.xcconfig"; sourceTree = "<group>"; };
+		00E356F21AD99517003FC87E /* hueTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = hueTests.m; sourceTree = "<group>"; };
+		0B065D5E95EB9233799AFDC0 /* Pods-hue.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-hue.debug.xcconfig"; path = "Target Support Files/Pods-hue/Pods-hue.debug.xcconfig"; sourceTree = "<group>"; };
+		13B07F961A680F5B00A75B9A /* hue.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = hue.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13B07FAF1A68108700A75B9A /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = hue/AppDelegate.h; sourceTree = "<group>"; };
+		13B07FB01A68108700A75B9A /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = AppDelegate.mm; path = hue/AppDelegate.mm; sourceTree = "<group>"; };
+		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = hue/Images.xcassets; sourceTree = "<group>"; };
+		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = hue/Info.plist; sourceTree = "<group>"; };
+		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = hue/main.m; sourceTree = "<group>"; };
+		430D667BC639EE8BEBB92618 /* Pods-hue.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-hue.release.xcconfig"; path = "Target Support Files/Pods-hue/Pods-hue.release.xcconfig"; sourceTree = "<group>"; };
+		53D3654668C221A60C0930DC /* libPods-hue.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-hue.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		7D14025AE474F394685BDAF5 /* Pods-hue-hueTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-hue-hueTests.release.xcconfig"; path = "Target Support Files/Pods-hue-hueTests/Pods-hue-hueTests.release.xcconfig"; sourceTree = "<group>"; };
+		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = hue/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		8565F9F0419F73D00DBB4177 /* libPods-hue-hueTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-hue-hueTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1F7FDD8D2A88E2A3B6B9612 /* Pods-hue-hueTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-hue-hueTests.debug.xcconfig"; path = "Target Support Files/Pods-hue-hueTests/Pods-hue-hueTests.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -51,7 +51,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B24C56EFA8EEF0336055C8A4 /* libPods-prepattern-prepatternTests.a in Frameworks */,
+				B24C56EFA8EEF0336055C8A4 /* libPods-hue-hueTests.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -59,20 +59,20 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5299E92DE12937D489F5FFD9 /* libPods-prepattern.a in Frameworks */,
+				5299E92DE12937D489F5FFD9 /* libPods-hue.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		00E356EF1AD99517003FC87E /* prepatternTests */ = {
+		00E356EF1AD99517003FC87E /* hueTests */ = {
 			isa = PBXGroup;
 			children = (
-				00E356F21AD99517003FC87E /* prepatternTests.m */,
+				00E356F21AD99517003FC87E /* hueTests.m */,
 				00E356F01AD99517003FC87E /* Supporting Files */,
 			);
-			path = prepatternTests;
+			path = hueTests;
 			sourceTree = "<group>";
 		};
 		00E356F01AD99517003FC87E /* Supporting Files */ = {
@@ -83,7 +83,7 @@
 			name = "Supporting Files";
 			sourceTree = "<group>";
 		};
-		13B07FAE1A68108700A75B9A /* prepattern */ = {
+		13B07FAE1A68108700A75B9A /* hue */ = {
 			isa = PBXGroup;
 			children = (
 				13B07FAF1A68108700A75B9A /* AppDelegate.h */,
@@ -93,15 +93,15 @@
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB71A68108700A75B9A /* main.m */,
 			);
-			name = prepattern;
+			name = hue;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				53D3654668C221A60C0930DC /* libPods-prepattern.a */,
-				8565F9F0419F73D00DBB4177 /* libPods-prepattern-prepatternTests.a */,
+				53D3654668C221A60C0930DC /* libPods-hue.a */,
+				8565F9F0419F73D00DBB4177 /* libPods-hue-hueTests.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -116,9 +116,9 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
-				13B07FAE1A68108700A75B9A /* prepattern */,
+				13B07FAE1A68108700A75B9A /* hue */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
-				00E356EF1AD99517003FC87E /* prepatternTests */,
+				00E356EF1AD99517003FC87E /* hueTests */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
@@ -131,8 +131,8 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* prepattern.app */,
-				00E356EE1AD99517003FC87E /* prepatternTests.xctest */,
+				13B07F961A680F5B00A75B9A /* hue.app */,
+				00E356EE1AD99517003FC87E /* hueTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -140,10 +140,10 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				0B065D5E95EB9233799AFDC0 /* Pods-prepattern.debug.xcconfig */,
-				430D667BC639EE8BEBB92618 /* Pods-prepattern.release.xcconfig */,
-				B1F7FDD8D2A88E2A3B6B9612 /* Pods-prepattern-prepatternTests.debug.xcconfig */,
-				7D14025AE474F394685BDAF5 /* Pods-prepattern-prepatternTests.release.xcconfig */,
+				0B065D5E95EB9233799AFDC0 /* Pods-hue.debug.xcconfig */,
+				430D667BC639EE8BEBB92618 /* Pods-hue.release.xcconfig */,
+				B1F7FDD8D2A88E2A3B6B9612 /* Pods-hue-hueTests.debug.xcconfig */,
+				7D14025AE474F394685BDAF5 /* Pods-hue-hueTests.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -151,9 +151,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		00E356ED1AD99517003FC87E /* prepatternTests */ = {
+		00E356ED1AD99517003FC87E /* hueTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 00E357021AD99517003FC87E /* Build configuration list for PBXNativeTarget "prepatternTests" */;
+			buildConfigurationList = 00E357021AD99517003FC87E /* Build configuration list for PBXNativeTarget "hueTests" */;
 			buildPhases = (
 				9A0688BD926B3E7B14D43DC2 /* [CP] Check Pods Manifest.lock */,
 				00E356EA1AD99517003FC87E /* Sources */,
@@ -167,14 +167,14 @@
 			dependencies = (
 				00E356F51AD99517003FC87E /* PBXTargetDependency */,
 			);
-			name = prepatternTests;
-			productName = prepatternTests;
-			productReference = 00E356EE1AD99517003FC87E /* prepatternTests.xctest */;
+			name = hueTests;
+			productName = hueTests;
+			productReference = 00E356EE1AD99517003FC87E /* hueTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		13B07F861A680F5B00A75B9A /* prepattern */ = {
+		13B07F861A680F5B00A75B9A /* hue */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "prepattern" */;
+			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "hue" */;
 			buildPhases = (
 				2370ABF97CF41C7FAF1EC0C1 /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
@@ -188,9 +188,9 @@
 			);
 			dependencies = (
 			);
-			name = prepattern;
-			productName = prepattern;
-			productReference = 13B07F961A680F5B00A75B9A /* prepattern.app */;
+			name = hue;
+			productName = hue;
+			productReference = 13B07F961A680F5B00A75B9A /* hue.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -210,7 +210,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "prepattern" */;
+			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "hue" */;
 			compatibilityVersion = "Xcode 12.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -223,8 +223,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				13B07F861A680F5B00A75B9A /* prepattern */,
-				00E356ED1AD99517003FC87E /* prepatternTests */,
+				13B07F861A680F5B00A75B9A /* hue */,
+				00E356ED1AD99517003FC87E /* hueTests */,
 			);
 		};
 /* End PBXProject section */
@@ -280,7 +280,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-prepattern-checkManifestLockResult.txt",
+				"$(DERIVED_FILE_DIR)/Pods-hue-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -293,15 +293,15 @@
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-prepattern-prepatternTests/Pods-prepattern-prepatternTests-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-hue-hueTests/Pods-hue-hueTests-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-prepattern-prepatternTests/Pods-prepattern-prepatternTests-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-hue-hueTests/Pods-hue-hueTests-frameworks-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-prepattern-prepatternTests/Pods-prepattern-prepatternTests-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-hue-hueTests/Pods-hue-hueTests-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		873609CC02F06924F09FEDE3 /* [CP] Copy Pods Resources */ = {
@@ -310,15 +310,15 @@
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-prepattern/Pods-prepattern-resources-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-hue/Pods-hue-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-prepattern/Pods-prepattern-resources-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-hue/Pods-hue-resources-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-prepattern/Pods-prepattern-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-hue/Pods-hue-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		9A0688BD926B3E7B14D43DC2 /* [CP] Check Pods Manifest.lock */ = {
@@ -336,7 +336,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-prepattern-prepatternTests-checkManifestLockResult.txt",
+				"$(DERIVED_FILE_DIR)/Pods-hue-hueTests-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -349,15 +349,15 @@
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-prepattern-prepatternTests/Pods-prepattern-prepatternTests-resources-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-hue-hueTests/Pods-hue-hueTests-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-prepattern-prepatternTests/Pods-prepattern-prepatternTests-resources-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-hue-hueTests/Pods-hue-hueTests-resources-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-prepattern-prepatternTests/Pods-prepattern-prepatternTests-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-hue-hueTests/Pods-hue-hueTests-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		F54C6D0A6B14493BE4EE21F6 /* [CP] Embed Pods Frameworks */ = {
@@ -366,15 +366,15 @@
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-prepattern/Pods-prepattern-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-hue/Pods-hue-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-prepattern/Pods-prepattern-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-hue/Pods-hue-frameworks-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-prepattern/Pods-prepattern-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-hue/Pods-hue-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -384,7 +384,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				00E356F31AD99517003FC87E /* prepatternTests.m in Sources */,
+				00E356F31AD99517003FC87E /* hueTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -402,7 +402,7 @@
 /* Begin PBXTargetDependency section */
 		00E356F51AD99517003FC87E /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 13B07F861A680F5B00A75B9A /* prepattern */;
+			target = 13B07F861A680F5B00A75B9A /* hue */;
 			targetProxy = 00E356F41AD99517003FC87E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -410,14 +410,14 @@
 /* Begin XCBuildConfiguration section */
 		00E356F61AD99517003FC87E /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = B1F7FDD8D2A88E2A3B6B9612 /* Pods-prepattern-prepatternTests.debug.xcconfig */;
+			baseConfigurationReference = B1F7FDD8D2A88E2A3B6B9612 /* Pods-hue-hueTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
 				);
-				INFOPLIST_FILE = prepatternTests/Info.plist;
+				INFOPLIST_FILE = hueTests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -431,17 +431,17 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/prepattern.app/prepattern";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/hue.app/hue";
 			};
 			name = Debug;
 		};
 		00E356F71AD99517003FC87E /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 7D14025AE474F394685BDAF5 /* Pods-prepattern-prepatternTests.release.xcconfig */;
+			baseConfigurationReference = 7D14025AE474F394685BDAF5 /* Pods-hue-hueTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COPY_PHASE_STRIP = NO;
-				INFOPLIST_FILE = prepatternTests/Info.plist;
+				INFOPLIST_FILE = hueTests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -455,19 +455,19 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/prepattern.app/prepattern";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/hue.app/hue";
 			};
 			name = Release;
 		};
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 0B065D5E95EB9233799AFDC0 /* Pods-prepattern.debug.xcconfig */;
+			baseConfigurationReference = 0B065D5E95EB9233799AFDC0 /* Pods-hue.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_BITCODE = NO;
-				INFOPLIST_FILE = prepattern/Info.plist;
+				INFOPLIST_FILE = hue/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -479,7 +479,7 @@
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
-				PRODUCT_NAME = prepattern;
+				PRODUCT_NAME = hue;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -488,12 +488,12 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 430D667BC639EE8BEBB92618 /* Pods-prepattern.release.xcconfig */;
+			baseConfigurationReference = 430D667BC639EE8BEBB92618 /* Pods-hue.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				INFOPLIST_FILE = prepattern/Info.plist;
+				INFOPLIST_FILE = hue/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -505,7 +505,7 @@
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
-				PRODUCT_NAME = prepattern;
+				PRODUCT_NAME = hue;
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
@@ -665,7 +665,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		00E357021AD99517003FC87E /* Build configuration list for PBXNativeTarget "prepatternTests" */ = {
+		00E357021AD99517003FC87E /* Build configuration list for PBXNativeTarget "hueTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				00E356F61AD99517003FC87E /* Debug */,
@@ -674,7 +674,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "prepattern" */ = {
+		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "hue" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
@@ -683,7 +683,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "prepattern" */ = {
+		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "hue" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,

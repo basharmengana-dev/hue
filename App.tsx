@@ -1,9 +1,9 @@
 import React from 'react'
 
-import { ColorGridTrigger } from './src/TriggerDriven'
+import { Hue } from './src/Hue'
 
 const App = () => {
-  return <ColorGridTrigger />
+  return <Hue />
 }
 
 export default App

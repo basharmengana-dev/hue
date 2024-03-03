@@ -10,10 +10,10 @@ import {
 } from '@shopify/react-native-skia'
 import { useDerivedValue } from 'react-native-reanimated'
 import { useWindowDimensions } from 'react-native'
-import { NoiseFunction2D, createNoise2D } from './SimplexNoise'
+import { NoiseFunction2D, createNoise2D } from '../SimplexNoise'
 import cdt2d from 'cdt2d'
 import useCustomClock from './useCustomClock'
-import { palette } from './colorPalette'
+import { palette } from '../colorPalette'
 import { Triangles } from './Triangles'
 
 export const ColorGrid = () => {
