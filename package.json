@@ -14,6 +14,7 @@
     "cdt2d": "^1.0.0",
     "react": "18.2.0",
     "react-native": "0.73.2",
+    "react-native-gesture-handler": "^2.15.0",
     "react-native-reanimated": "^3.6.1"
   },
   "devDependencies": {

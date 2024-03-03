@@ -13,6 +13,7 @@ import { Button, View, useWindowDimensions } from 'react-native'
 import {
   Easing,
   ReduceMotion,
+  SharedValue,
   interpolate,
   runOnJS,
   useDerivedValue,
@@ -27,10 +28,15 @@ import {
   shufflePalette,
   yellowColorPalette,
 } from './colorPalette'
-import { NoiseFunction2D, createNoise2D } from './SimplexNoise'
+import { createNoise2D } from './SimplexNoise'
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler'
 
 const animationConfig = {
-  duration: 2000,
+  duration: 1300,
   easing: Easing.bezier(0.25, 0.1, 0.25, 1),
   reduceMotion: ReduceMotion.System,
 }
@@ -39,10 +45,12 @@ const ACircle = ({
   initialVertex,
   targetVertex,
   color,
+  offset,
 }: {
   initialVertex: SkPoint
   targetVertex: SkPoint
   color: string
+  offset: SharedValue<number>
 }) => {
   const cx = useSharedValue(initialVertex.x)
   const cy = useSharedValue(initialVertex.y)
@@ -53,8 +61,10 @@ const ACircle = ({
     cy.value = withTiming(targetVertex.y, animationConfig)
   }, [targetVertex])
 
+  const xWithOffset = useDerivedValue(() => cx.value + offset.value)
+
   return (
-    <Circle cx={cx} cy={cy} r={20} color={color}>
+    <Circle cx={xWithOffset} cy={cy} r={20} color={color}>
       <Paint color="black" style="stroke" strokeWidth={1} />
     </Circle>
   )
@@ -65,12 +75,14 @@ const ATriangle = ({
   targetVertices,
   colors,
   onAnimationComplete,
+  offset,
   debug = false,
 }: {
   initialVertices: SkPoint[]
   targetVertices: SkPoint[]
   colors: string[]
   onAnimationComplete: () => void
+  offset: SharedValue<number>
   debug?: boolean
 }) => {
   const vertices_x = initialVertices.map(({ x }) => useSharedValue(x))
@@ -81,6 +93,7 @@ const ATriangle = ({
     const onSingleAnimationComplete = () => {
       'worklet'
       animationCount.value += 1
+      // console.log(animationCount.value)
       if (animationCount.value === targetVertices.length) {
         runOnJS(onAnimationComplete)() // Call the passed callback once all animations are complete
         animationCount.value = 0
@@ -108,7 +121,7 @@ const ATriangle = ({
     const f = ({ x, y }: Vector) => [x, y].join(',')
     // combine vertices_x and vertices_y into a single array of vertices so that they can be indeced by the triangles array below
     const vertices = vertices_x.map((x, i) => ({
-      x: x.value,
+      x: x.value + offset.value,
       y: vertices_y[i].value,
     }))
 
@@ -126,7 +139,10 @@ const ATriangle = ({
 
   // combine vertices_x and vertices_y into a single array of vertices and stored in derivedVertices
   const derivedVertices = useDerivedValue(() =>
-    vertices_x.map((x, i) => ({ x: x.value, y: vertices_y[i].value })),
+    vertices_x.map((x, i) => ({
+      x: x.value + offset.value,
+      y: vertices_y[i].value,
+    })),
   )
 
   return (
@@ -178,9 +194,9 @@ export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
   const [debug, setDebug] = useState(true)
 
-  const cols = 3,
-    rows = 3,
-    pages = 10
+  const cols = 2,
+    rows = 2,
+    pages = 2
   const {
     grid: initialVertices,
     hSize,
@@ -203,6 +219,7 @@ export const Hue: React.FC = () => {
   const yAmplitude = vSize * 0.3
   const frequency = 0.1
   const panLeft = () => {
+    console.log('panLeft')
     const targetVertices = vertices.map((vertex, i) => {
       const targetVector = vec(vertex.x - pageSize, vertex.y)
 
@@ -225,6 +242,7 @@ export const Hue: React.FC = () => {
   }
 
   const panRight = () => {
+    console.log('panRight')
     const targetVertex = vertices.map(vertex =>
       vec(vertex.x + pageSize, vertex.y),
     )
@@ -235,26 +253,50 @@ export const Hue: React.FC = () => {
     (_, i) => shufflePalette(mixedColorPalette)[i % mixedColorPalette.length],
   )
 
+  const offset = useSharedValue(0)
+
+  const pan = Gesture.Pan()
+    .onStart(() => {
+      // Store the current offset value when the gesture starts
+      offset.value = offset.value
+    })
+    .onUpdate(event => {
+      // Adjust the sensiivity of the movement
+      const sensitivity = 20 // Increase this value to make the movement slower
+      const scaledTranslationX = event.translationX / sensitivity
+
+      offset.value += scaledTranslationX // Accumulate the scaled translation to the offset
+    })
+    .onEnd(() => {
+      // Optionally, you can handle logic here when the gesture ends
+    })
+
   return (
     <View style={{ flex: 1 }}>
-      <Canvas style={{ flex: 1, backgroundColor: 'black' }}>
-        <ATriangle
-          initialVertices={initialVertices}
-          targetVertices={vertices}
-          colors={colors}
-          onAnimationComplete={callback}
-          debug={debug}
-        />
-        {debug &&
-          vertices.map((vertex, i) => (
-            <ACircle
-              key={i}
-              initialVertex={vertex}
-              targetVertex={vertex}
-              color={colors[i]}
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <GestureDetector gesture={pan}>
+          <Canvas style={{ flex: 1, backgroundColor: 'white' }}>
+            <ATriangle
+              initialVertices={initialVertices}
+              targetVertices={vertices}
+              colors={colors}
+              onAnimationComplete={callback}
+              offset={offset}
+              debug={debug}
             />
-          ))}
-      </Canvas>
+            {debug &&
+              vertices.map((vertex, i) => (
+                <ACircle
+                  key={i}
+                  initialVertex={vertex}
+                  targetVertex={vertex}
+                  color={colors[i]}
+                  offset={offset}
+                />
+              ))}
+          </Canvas>
+        </GestureDetector>
+      </GestureHandlerRootView>
       <View
         style={{
           backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -270,7 +312,13 @@ export const Hue: React.FC = () => {
         }}>
         <Button title="⬅️" onPress={panLeft} />
         <Button title="➡️" onPress={panRight} />
-        <Button title="🔄" onPress={() => setVertices(initialVertices)} />
+        <Button
+          title="🔄"
+          onPress={() => {
+            offset.value = 0
+            setVertices(initialVertices)
+          }}
+        />
         <Button title={debug ? '🟢' : '🐛'} onPress={() => setDebug(!debug)} />
       </View>
     </View>
