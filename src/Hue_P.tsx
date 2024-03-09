@@ -1,40 +1,17 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
+import { Canvas, Circle, Paint, VertexMode } from '@shopify/react-native-skia'
+import { View, useWindowDimensions } from 'react-native'
 import {
-  Canvas,
-  Circle,
-  Paint,
-  vec,
-  Vertices,
-  Vector,
-  Path,
-} from '@shopify/react-native-skia'
-import { Button, View, useWindowDimensions } from 'react-native'
-import {
-  Easing,
-  ReduceMotion,
   SharedValue,
   interpolateColor,
-  runOnJS,
   useDerivedValue,
   useSharedValue,
-  withTiming,
 } from 'react-native-reanimated'
-import cdt2d from 'cdt2d'
-import {
-  mixedColorPalette,
-  mixedColorPalette2,
-  palette,
-  shufflePalette,
-  yellowColorPalette,
-} from './colorPalette'
-import { createNoise2D } from './SimplexNoise'
 import {
   Gesture,
   GestureDetector,
   GestureHandlerRootView,
-  PanGesture,
 } from 'react-native-gesture-handler'
-import { create } from 'react-test-renderer'
 
 type Vertex = { x: number; y: number }
 type ColoredVertex = Vertex & { color: string }
@@ -60,18 +37,22 @@ const ACircle = ({
 const createGrid = ({
   rows,
   cols,
+  pages,
   width,
   height,
 }: {
   rows: number
   cols: number
+  pages: number // New parameter to specify how much wider the grid should be
   width: number
   height: number
 }) => {
   const hSize = width / cols
   const vSize = height / rows
-  const totalColumns = Math.ceil(width / hSize) + 1
+  const totalWidth = width * pages
+  const totalColumns = cols + Math.ceil(totalWidth / hSize)
   const totalRows = rows + 1
+
   const grid = Array.from({ length: totalColumns }, (_, col) =>
     Array.from(
       { length: totalRows },
@@ -83,37 +64,42 @@ const createGrid = ({
     ),
   ).flat()
 
-  return { grid, hSize, vSize }
+  return { grid, hSize, vSize, totalColumns }
 }
 
 const createStreamedGrid = ({
   rows,
   cols,
-  range,
+  pages,
   width,
   height,
   colorStream,
 }: {
   rows: number
   cols: number
-  range: number
+  pages: number
   width: number
   height: number
   colorStream: string[]
 }) => {
-  const { grid: baseGrid, hSize } = createGrid({
+  const {
+    grid: baseGrid,
+    hSize,
+    totalColumns,
+  } = createGrid({
     rows,
     cols,
+    pages,
     width,
     height,
   })
 
   return baseGrid.map(({ x, y }) =>
     Array.from(
-      { length: range + 1 },
+      { length: totalColumns + 1 },
       (_, i) =>
         ({
-          x: x + hSize * (i - range),
+          x: x + hSize * (i - totalColumns),
           y: y,
           color: colorStream[i],
         } as ColoredVertex),
@@ -158,15 +144,15 @@ const getNextGrid = ({
 export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
 
-  const cols = 3,
+  const cols = 1,
     rows = 1,
-    range = 1,
-    colorStream = ['green', 'red'] // last element is current, red
+    pages = 2,
+    colorStream = ['red', 'green', 'blue', 'orange'].reverse() // last element is current, red
 
   const initialGridStreams = createStreamedGrid({
     rows,
     cols,
-    range,
+    pages,
     width,
     height,
     colorStream,
@@ -185,13 +171,29 @@ export const Hue: React.FC = () => {
   )
 
   console.log('\n***** initialGridStreams *****\n')
-  initialGridStreams.forEach(row => console.log(row))
+  initialGridStreams.forEach(stream => {
+    console.log(
+      `\n*** Stream start for x: ${stream.at(-1)?.x}, y: ${
+        stream.at(-1)?.y
+      } *** \n`,
+    )
+    stream
+      .reverse()
+      .forEach(vertex =>
+        console.log({ x: vertex.x, y: vertex.y, c: vertex.color }),
+      )
+    console.log('\n*** Stream end *** \n')
+  })
   console.log('\n\n')
   console.log('\n***** currentGrid *****\n')
-  currentGrid.forEach(row => console.log(row))
+  currentGrid.forEach(vertex =>
+    console.log({ _x: vertex.x, _y: vertex.y, c: vertex.color }),
+  )
   console.log('\n\n')
   console.log('\n***** nextGrid *****\n')
-  nextGrid.forEach(row => console.log(row))
+  nextGrid.forEach(vertex =>
+    console.log({ _x: vertex.x, _y: vertex.y, c: vertex.color }),
+  )
   console.log('\n\n')
 
   const offset = useSharedValue(0)
