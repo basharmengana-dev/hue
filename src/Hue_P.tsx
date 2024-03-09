@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { Canvas, Circle, Paint, VertexMode } from '@shopify/react-native-skia'
 import { View, useWindowDimensions } from 'react-native'
 import {
@@ -157,7 +157,7 @@ export const Hue: React.FC = () => {
     height,
     colorStream,
   })
-  const initialCurrent = Array(initialGridStreams.length).fill(0)
+  const initialCurrent = Array<number>(initialGridStreams.length).fill(0)
 
   const [gridStreams, seGridStreams] = useState(initialGridStreams)
   const [current, setCurrent] = useState(initialCurrent)
@@ -227,6 +227,19 @@ export const Hue: React.FC = () => {
 
     return target
   })
+
+  useEffect(() => {
+    // if target is equal to current, then its time to update the target to the next
+    // target accoridng to the stream
+    // allow for some margin of error in the comparision
+    // if (
+    //     Math.abs(target.x.value - currentVertex.x) < 0.1 &&
+    //     Math.abs(target.y.value - currentVertex.y) < 0.1
+    //   ) {
+    //     // update current so the current currentGrid is the nextGrid
+    //     setCurrent(current.map((c, i) => c - 1))
+    //   }
+  }, [offset])
 
   return (
     <View style={{ flex: 1 }}>
