@@ -33,6 +33,7 @@ import {
   Gesture,
   GestureDetector,
   GestureHandlerRootView,
+  PanGesture,
 } from 'react-native-gesture-handler'
 
 const animationConfig = {
@@ -55,16 +56,27 @@ const ACircle = ({
   const cx = useSharedValue(initialVertex.x)
   const cy = useSharedValue(initialVertex.y)
 
-  // Respond to changes in targetVertex to trigger animation
-  useEffect(() => {
-    cx.value = withTiming(targetVertex.x, animationConfig)
-    cy.value = withTiming(targetVertex.y, animationConfig)
-  }, [targetVertex])
+  // // Respond to changes in targetVertex to trigger animation
+  // useEffect(() => {
+  //   // cx.value = withTiming(targetVertex.x, animationConfig)
+  //   // cy.value = withTiming(targetVertex.y, animationConfig)
+  //   progress.value = withTiming(1, animationConfig)
+  // }, [targetVertex])
 
-  const xWithOffset = useDerivedValue(() => cx.value + offset.value)
+  // const xWithOffset = useDerivedValue(() => cx.value + offset.value)
+  const xD = useDerivedValue(
+    () => cx.value - (targetVertex.x - cx.value) * offset.value,
+  )
+
+  // move the circle manually using derived value
+  // when user removes their finger from the screen, we want
+  // to use withTiming to animate to the targetVertex.x position
+  // when that poisition is reached then we want to use the net target vertex
+  // the target vertex will either be left or right of the point
+  // and each target vertex has a precomputed noise to it
 
   return (
-    <Circle cx={xWithOffset} cy={cy} r={20} color={color}>
+    <Circle cx={xD} cy={cy} r={20} color={color}>
       <Paint color="black" style="stroke" strokeWidth={1} />
     </Circle>
   )
@@ -190,13 +202,21 @@ const createGrid = ({
   return { grid, hSize, vSize, pageSize: hSize * cols, totalWidth }
 }
 
+const panGridLeft = ({
+  vertices,
+  hSize,
+}: {
+  vertices: SkPoint[]
+  hSize: number
+}) => vertices.map((vertex, i) => vec(vertex.x - hSize, vertex.y))
+
 export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
   const [debug, setDebug] = useState(true)
 
-  const cols = 2,
-    rows = 2,
-    pages = 2
+  const cols = 1,
+    rows = 1,
+    pages = 1
   const {
     grid: initialVertices,
     hSize,
@@ -207,6 +227,9 @@ export const Hue: React.FC = () => {
     () => createGrid({ cols, rows, pages, width, height }),
     [width, height],
   )
+
+  const leftGrid = panGridLeft({ vertices: initialVertices, hSize })
+
   const [vertices, setVertices] = useState<SkPoint[]>(initialVertices)
 
   const callback = () => {
@@ -250,7 +273,7 @@ export const Hue: React.FC = () => {
   }
 
   const colors = vertices.map(
-    (_, i) => shufflePalette(mixedColorPalette)[i % mixedColorPalette.length],
+    (_, i) => shufflePalette(palette)[i % palette.length],
   )
 
   const offset = useSharedValue(0)
@@ -258,17 +281,19 @@ export const Hue: React.FC = () => {
   const pan = Gesture.Pan()
     .onStart(() => {
       // Store the current offset value when the gesture starts
-      offset.value = offset.value
+      offset.value = 0
     })
     .onUpdate(event => {
       // Adjust the sensiivity of the movement
-      const sensitivity = 20 // Increase this value to make the movement slower
-      const scaledTranslationX = event.translationX / sensitivity
+      // const sensitivity = 20 // Increase this value to make the movement slower
+      // const scaledTranslationX = event.translationX / sensitivity
 
-      offset.value += scaledTranslationX // Accumulate the scaled translation to the offset
+      // offset.value += scaledTranslationX // Accumulate the scaled translation to the offset
+      offset.value = event.translationX / hSize
     })
     .onEnd(() => {
       // Optionally, you can handle logic here when the gesture ends
+      offset.value = 0
     })
 
   return (
@@ -276,20 +301,20 @@ export const Hue: React.FC = () => {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <GestureDetector gesture={pan}>
           <Canvas style={{ flex: 1, backgroundColor: 'white' }}>
-            <ATriangle
+            {/* <ATriangle
               initialVertices={initialVertices}
               targetVertices={vertices}
               colors={colors}
               onAnimationComplete={callback}
               offset={offset}
               debug={debug}
-            />
+            /> */}
             {debug &&
               vertices.map((vertex, i) => (
                 <ACircle
                   key={i}
                   initialVertex={vertex}
-                  targetVertex={vertex}
+                  targetVertex={leftGrid[i]}
                   color={colors[i]}
                   offset={offset}
                 />
