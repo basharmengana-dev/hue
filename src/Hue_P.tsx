@@ -116,7 +116,7 @@ const getCurrentGrid = ({
 }) =>
   gridStreams.map((stream, index) => stream[stream.length - 1 + current[index]])
 
-const getNextGrid = ({
+const getGridAtStep = ({
   gridStreams,
   current,
   step,
@@ -125,12 +125,9 @@ const getNextGrid = ({
   current: number[]
   step: number
 }) => {
-  // Apply the step to update the current positions
   const updatedCurrent = current.map(c => c + step)
 
-  // Fetch the grid state based on the updated current positions
   const nextGrid = gridStreams.map((stream, index) => {
-    // Ensure the index is within bounds
     const newPositionIndex = Math.max(
       0,
       Math.min(stream.length - 1, stream.length - 1 + updatedCurrent[index]),
@@ -139,6 +136,50 @@ const getNextGrid = ({
   })
 
   return nextGrid
+}
+
+const getNextGrid = ({
+  gridStreams,
+  current,
+}: {
+  gridStreams: ColoredVertex[][]
+  current: number[]
+}) => getGridAtStep({ gridStreams, current, step: -1 })
+
+const consoleLogGridData = ({
+  gridStreams,
+  currentGrid,
+  nextGrid,
+}: {
+  gridStreams: ColoredVertex[][]
+  currentGrid: ColoredVertex[]
+  nextGrid: ColoredVertex[]
+}) => {
+  console.log('\n***** gridStreams *****\n')
+  gridStreams.forEach(stream => {
+    console.log(
+      `\n*** Stream start for x: ${stream.at(-1)?.x}, y: ${
+        stream.at(-1)?.y
+      } *** \n`,
+    )
+    stream
+      .reverse()
+      .forEach(vertex =>
+        console.log({ x: vertex.x, y: vertex.y, c: vertex.color }),
+      )
+    console.log('\n*** Stream end *** \n')
+  })
+  console.log('\n\n')
+  console.log('\n***** currentGrid *****\n')
+  currentGrid.forEach(vertex =>
+    console.log({ _x: vertex.x, _y: vertex.y, c: vertex.color }),
+  )
+  console.log('\n\n')
+  console.log('\n***** nextGrid *****\n')
+  nextGrid.forEach(vertex =>
+    console.log({ _x: vertex.x, _y: vertex.y, c: vertex.color }),
+  )
+  console.log('\n\n')
 }
 
 export const Hue: React.FC = () => {
@@ -166,35 +207,11 @@ export const Hue: React.FC = () => {
     [gridStreams, current],
   )
   const nextGrid = useMemo(
-    () => getNextGrid({ gridStreams, current, step: -1 }),
+    () => getNextGrid({ gridStreams, current }),
     [gridStreams, current],
   )
 
-  console.log('\n***** initialGridStreams *****\n')
-  initialGridStreams.forEach(stream => {
-    console.log(
-      `\n*** Stream start for x: ${stream.at(-1)?.x}, y: ${
-        stream.at(-1)?.y
-      } *** \n`,
-    )
-    stream
-      .reverse()
-      .forEach(vertex =>
-        console.log({ x: vertex.x, y: vertex.y, c: vertex.color }),
-      )
-    console.log('\n*** Stream end *** \n')
-  })
-  console.log('\n\n')
-  console.log('\n***** currentGrid *****\n')
-  currentGrid.forEach(vertex =>
-    console.log({ _x: vertex.x, _y: vertex.y, c: vertex.color }),
-  )
-  console.log('\n\n')
-  console.log('\n***** nextGrid *****\n')
-  nextGrid.forEach(vertex =>
-    console.log({ _x: vertex.x, _y: vertex.y, c: vertex.color }),
-  )
-  console.log('\n\n')
+  consoleLogGridData({ gridStreams, currentGrid, nextGrid })
 
   const offset = useSharedValue(0)
   const pan = Gesture.Pan()
