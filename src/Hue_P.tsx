@@ -86,6 +86,29 @@ const HueBackground = ({
     },
   )
 
+  useAnimatedReaction(
+    () => targetVertices[0].y.value,
+    () => {
+      if (isPanningRunning.value === true) {
+        if (isMouseDownForPanning.value === true) {
+          yInternal.map((y, i) => (y.value = targetVertices[i].y.value))
+        } else {
+          yInternal.map(
+            (y, i) => (y.value = withTiming(current[i].y, animationConfigBack)),
+          )
+        }
+      } else {
+        yInternal.map(
+          (y, i) =>
+            (y.value = withTiming(
+              targetVertices[i].y.value,
+              animationConfigForward,
+            )),
+        )
+      }
+    },
+  )
+
   const triangles = useMemo(
     () => cdt2d(targetVertices.map(({ x, y }) => [x.value, y.value])),
     [],
