@@ -1,5 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react'
-import { Canvas, Circle, Paint, VertexMode } from '@shopify/react-native-skia'
+import React, { useState, useMemo } from 'react'
+import {
+  Canvas,
+  Circle,
+  Paint,
+  Path,
+  Vertices,
+} from '@shopify/react-native-skia'
 import { View, useWindowDimensions } from 'react-native'
 import {
   SharedValue,
@@ -15,6 +21,7 @@ import {
   GestureDetector,
   GestureHandlerRootView,
 } from 'react-native-gesture-handler'
+import cdt2d from 'cdt2d'
 
 const colorStream = [
   'red',
@@ -22,17 +29,85 @@ const colorStream = [
   'blue',
   'orange',
   'yellow',
-  'red',
-  'green',
-  'blue',
-  'orange',
-  'yellow',
-  'red',
-  'green',
-  'blue',
-  'orange',
-  'yellow',
+  // 'red',
+  // 'green',
+  // 'blue',
+  // 'orange',
+  // 'yellow',
+  // 'red',
+  // 'green',
+  // 'blue',
+  // 'orange',
+  // 'yellow',
 ].reverse() // last element is current, red
+
+const HueBackground = ({
+  current,
+  targetVertices,
+  isPanningRunning,
+  isMouseDownForPanning,
+}: {
+  current: ColoredVertex[]
+  targetVertices: {
+    x: SharedValue<number>
+    y: SharedValue<number>
+    color: SharedValue<string>
+  }[]
+  isPanningRunning: SharedValue<boolean>
+  isMouseDownForPanning: SharedValue<boolean>
+}) => {
+  // ***** Vertices related code *****
+  const triangleVertices = targetVertices
+  const triangles = useMemo(
+    () => cdt2d(triangleVertices.map(({ x, y }) => [x.value, y.value])),
+    [],
+  )
+  const indices = triangles.flat()
+  // useAnimatedReaction here instead
+  const derivedVertices = useDerivedValue(() =>
+    targetVertices.map((vertex, i) => ({
+      x: vertex.x.value,
+      y: vertex.y.value,
+    })),
+  )
+  const colors = useDerivedValue(() =>
+    targetVertices.map(vertex => vertex.color.value),
+  )
+  // ***** Vertices related code *****
+
+  // ***** Path related code *****
+  const path = useDerivedValue(() => {
+    const f = ({ x, y }: Vertex) => [x, y].join(',')
+    const vertices = targetVertices.map((vertex, i) => ({
+      x: vertex.x.value,
+      y: vertex.y.value,
+    }))
+
+    return triangles
+      .map(([a, b, c]: [number, number, number]) => {
+        const v1 = vertices[a]
+        const v2 = vertices[b]
+        const v3 = vertices[c]
+        return `M${f(v1)} L${f(v2)} L${f(v3)} Z`
+      })
+      .join('')
+  })
+  // ***** Path related code *****
+
+  return (
+    <>
+      <Vertices
+        vertices={derivedVertices}
+        indices={indices}
+        style="stroke"
+        color="black"
+        strokeWidth={2}
+        colors={colors}
+      />
+      <Path path={path} strokeWidth={2} color="black" style="stroke" />
+    </>
+  )
+}
 
 type Vertex = { x: number; y: number }
 type ColoredVertex = Vertex & { color: string }
@@ -50,7 +125,8 @@ const ACircle = ({
   isPanningRunning: SharedValue<boolean>
   isMouseDownForPanning: SharedValue<boolean>
 }) => {
-  const animationConfig = { duration: 300 }
+  const animationConfigForward = { duration: 500 }
+  const animationConfigBack = { duration: 300 }
 
   const xInternal = useSharedValue(current.x)
   const yInternal = useSharedValue(current.y)
@@ -63,10 +139,10 @@ const ACircle = ({
         if (isMouseDownForPanning.value === true) {
           xInternal.value = currentValue
         } else {
-          xInternal.value = withTiming(current.x, animationConfig)
+          xInternal.value = withTiming(current.x, animationConfigForward)
         }
       } else {
-        xInternal.value = withTiming(target.x.value, animationConfig)
+        xInternal.value = withTiming(target.x.value, animationConfigForward)
       }
     },
   )
@@ -77,10 +153,10 @@ const ACircle = ({
         if (isMouseDownForPanning.value === true) {
           yInternal.value = currentValue
         } else {
-          yInternal.value = withTiming(current.y, animationConfig)
+          yInternal.value = withTiming(current.y, animationConfigBack)
         }
       } else {
-        yInternal.value = withTiming(target.y.value, animationConfig)
+        yInternal.value = withTiming(target.y.value, animationConfigBack)
       }
     },
   )
@@ -260,8 +336,8 @@ export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
 
   const cols = 1,
-    rows = 2,
-    pages = 3
+    rows = 1,
+    pages = 2
 
   const initialGridStreams = createStreamedGrid({
     rows,
@@ -292,9 +368,9 @@ export const Hue: React.FC = () => {
   )
 
   printGridData({
-    //   // currentGrid,
-    //   // gridStreams,
-    //   // targetGrid,
+    currentGrid,
+    // gridStreams,
+    targetGrid,
   })
 
   const offset = useSharedValue(0)
@@ -356,6 +432,12 @@ export const Hue: React.FC = () => {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <GestureDetector gesture={pan}>
           <Canvas style={{ flex: 1, backgroundColor: 'white' }}>
+            <HueBackground
+              current={currentGrid}
+              targetVertices={target}
+              isPanningRunning={isPanningRunning}
+              isMouseDownForPanning={isMouseDownForPanning}
+            />
             {currentGrid.map((vertex, i) => (
               <ACircle
                 key={i}
