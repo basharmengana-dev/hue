@@ -29,16 +29,16 @@ const colorStream = [
   'blue',
   'orange',
   'yellow',
-  // 'red',
-  // 'green',
-  // 'blue',
-  // 'orange',
-  // 'yellow',
-  // 'red',
-  // 'green',
-  // 'blue',
-  // 'orange',
-  // 'yellow',
+  'red',
+  'green',
+  'blue',
+  'orange',
+  'yellow',
+  'red',
+  'green',
+  'blue',
+  'orange',
+  'yellow',
 ].reverse()
 
 const animationConfigForward = { duration: 400 }
@@ -250,9 +250,9 @@ const printGridData = ({
 export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
 
-  const cols = 1,
-    rows = 1,
-    pages = 2
+  const cols = 2,
+    rows = 2,
+    pages = 4
 
   const initialGridStreams = createStreamedGrid({
     rows,
@@ -283,18 +283,21 @@ export const Hue: React.FC = () => {
   )
 
   printGridData({
-    currentGrid,
+    // currentGrid,
     // gridStreams,
-    targetGrid,
+    // targetGrid,
   })
 
   const offset = useSharedValue(0)
   const isPanningRunning = useSharedValue(true)
   const isMouseDownForPanning = useSharedValue(false)
+  const direction = useSharedValue(0)
+  const xInternal = currentGrid.map(c => useSharedValue(c.x))
+  const yInternal = currentGrid.map(c => useSharedValue(c.y))
+  const animationComleted = useSharedValue(0)
 
   const target = currentGrid.map((currentVertex, vertexIndex) => {
     const nextVertex = targetGrid[vertexIndex]
-
     return {
       x: useDerivedValue(
         () => currentVertex.x - (nextVertex.x - currentVertex.x) * offset.value,
@@ -302,8 +305,8 @@ export const Hue: React.FC = () => {
       y: useDerivedValue(() => currentVertex.y),
       color: useDerivedValue(() =>
         interpolateColor(
-          offset.value,
-          [0, -1],
+          Math.abs(offset.value),
+          [0, 1],
           [currentVertex.color, nextVertex.color],
         ),
       ),
@@ -314,9 +317,9 @@ export const Hue: React.FC = () => {
     () => offset.value,
     () => {
       if (isPanningRunning.value === true) {
-        if (-offset.value > 0.5) {
+        if (Math.abs(offset.value) > 0.5 && direction.value !== 0) {
           isPanningRunning.value = false
-          runOnJS(setStep)(step.map(c => c - 1))
+          runOnJS(setStep)(step.map(c => c + direction.value))
         }
       }
     },
@@ -327,8 +330,13 @@ export const Hue: React.FC = () => {
       isPanningRunning.value = true
       isMouseDownForPanning.value = true
       offset.value = 0
+      direction.value = 0
     })
     .onUpdate(event => {
+      if (direction.value === 0) {
+        direction.value = event.velocityX > 0 ? 1 : -1
+      }
+
       if (isPanningRunning.value == false) {
         return
       } else {
@@ -340,26 +348,54 @@ export const Hue: React.FC = () => {
       offset.value = 0
     })
 
-  const xInternal = currentGrid.map(c => useSharedValue(c.x))
-  const yInternal = currentGrid.map(c => useSharedValue(c.y))
-
   useAnimatedReaction(
     () => target[0].x.value,
     () => {
       if (isPanningRunning.value === true) {
         if (isMouseDownForPanning.value === true) {
-          xInternal.map((x, i) => (x.value = target[i].x.value))
+          xInternal.forEach((x, i) => (x.value = target[i].x.value))
         } else {
-          xInternal.map(
-            (x, i) =>
-              (x.value = withTiming(currentGrid[i].x, animationConfigBack)),
-          )
+          xInternal.forEach((x, i) => {
+            if (i === 0) {
+              //NOTE: Callback to keep track of animation completion
+              animationComleted.value = 0
+              x.value = withTiming(
+                currentGrid[i].x,
+                animationConfigBack,
+                isFinished => {
+                  if (isFinished) animationComleted.value = 1
+                },
+              )
+            } else {
+              x.value = withTiming(currentGrid[i].x, animationConfigBack)
+            }
+          })
         }
       } else {
-        xInternal.map(
-          (x, i) =>
-            (x.value = withTiming(target[i].x.value, animationConfigForward)),
-        )
+        xInternal.forEach((x, i) => {
+          if (i === 0) {
+            //NOTE: Callback to keep track of animation completion
+            animationComleted.value = 0
+            x.value = withTiming(
+              target[i].x.value,
+              animationConfigForward,
+              isFinished => {
+                if (isFinished) animationComleted.value = 1
+              },
+            )
+          } else {
+            x.value = withTiming(target[i].x.value, animationConfigForward)
+          }
+        })
+      }
+    },
+  )
+
+  useAnimatedReaction(
+    () => animationComleted.value,
+    (current, previous) => {
+      if (current === 1 && previous === 0) {
+        animationComleted.value = 0
       }
     },
   )
@@ -369,15 +405,15 @@ export const Hue: React.FC = () => {
     () => {
       if (isPanningRunning.value === true) {
         if (isMouseDownForPanning.value === true) {
-          yInternal.map((y, i) => (y.value = target[i].y.value))
+          yInternal.forEach((y, i) => (y.value = target[i].y.value))
         } else {
-          yInternal.map(
+          yInternal.forEach(
             (y, i) =>
               (y.value = withTiming(currentGrid[i].y, animationConfigBack)),
           )
         }
       } else {
-        yInternal.map(
+        yInternal.forEach(
           (y, i) =>
             (y.value = withTiming(target[i].y.value, animationConfigForward)),
         )
