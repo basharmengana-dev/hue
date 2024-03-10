@@ -45,88 +45,31 @@ const animationConfigForward = { duration: 400 }
 const animationConfigBack = { duration: 200 }
 
 const HueBackground = ({
-  current,
-  targetVertices,
-  isPanningRunning,
-  isMouseDownForPanning,
+  colors,
+  target,
+  derivedVertices,
 }: {
-  current: ColoredVertex[]
-  targetVertices: {
-    x: SharedValue<number>
-    y: SharedValue<number>
-    color: SharedValue<string>
+  colors: Readonly<SharedValue<string[]>>
+  target: {
+    x: Readonly<SharedValue<number>>
+    y: Readonly<SharedValue<number>>
+    color: Readonly<SharedValue<string>>
   }[]
-  isPanningRunning: SharedValue<boolean>
-  isMouseDownForPanning: SharedValue<boolean>
+  derivedVertices: Readonly<
+    SharedValue<
+      {
+        x: number
+        y: number
+      }[]
+    >
+  >
 }) => {
-  const xInternal = current.map(c => useSharedValue(c.x))
-  const yInternal = current.map(c => useSharedValue(c.y))
-
-  // ***** Vertices related code *****
-  useAnimatedReaction(
-    () => targetVertices[0].x.value,
-    () => {
-      if (isPanningRunning.value === true) {
-        if (isMouseDownForPanning.value === true) {
-          xInternal.map((x, i) => (x.value = targetVertices[i].x.value))
-        } else {
-          xInternal.map(
-            (x, i) => (x.value = withTiming(current[i].x, animationConfigBack)),
-          )
-        }
-      } else {
-        xInternal.map(
-          (x, i) =>
-            (x.value = withTiming(
-              targetVertices[i].x.value,
-              animationConfigForward,
-            )),
-        )
-      }
-    },
-  )
-
-  useAnimatedReaction(
-    () => targetVertices[0].y.value,
-    () => {
-      if (isPanningRunning.value === true) {
-        if (isMouseDownForPanning.value === true) {
-          yInternal.map((y, i) => (y.value = targetVertices[i].y.value))
-        } else {
-          yInternal.map(
-            (y, i) => (y.value = withTiming(current[i].y, animationConfigBack)),
-          )
-        }
-      } else {
-        yInternal.map(
-          (y, i) =>
-            (y.value = withTiming(
-              targetVertices[i].y.value,
-              animationConfigForward,
-            )),
-        )
-      }
-    },
-  )
-
   const triangles = useMemo(
-    () => cdt2d(targetVertices.map(({ x, y }) => [x.value, y.value])),
+    () => cdt2d(target.map(({ x, y }) => [x.value, y.value])),
     [],
   )
   const indices = triangles.flat()
-  // useAnimatedReaction here instead
-  const derivedVertices = useDerivedValue(() =>
-    xInternal.map((x, i) => ({
-      x: x.value,
-      y: yInternal[i].value,
-    })),
-  )
-  const colors = useDerivedValue(() =>
-    targetVertices.map(vertex => vertex.color.value),
-  )
-  // ***** Vertices related code *****
 
-  // ***** Path related code *****
   const path = useDerivedValue(() => {
     const f = ({ x, y }: Vertex) => [x, y].join(',')
 
@@ -139,7 +82,6 @@ const HueBackground = ({
       })
       .join('')
   })
-  // ***** Path related code *****
 
   return (
     <>
@@ -158,58 +100,6 @@ const HueBackground = ({
 
 type Vertex = { x: number; y: number }
 type ColoredVertex = Vertex & { color: string }
-
-const ACircle = ({
-  current,
-  target,
-  isPanningRunning,
-  isMouseDownForPanning,
-}: {
-  current: ColoredVertex
-  target: { x: SharedValue<number>; y: SharedValue<number> } & {
-    color: SharedValue<string>
-  }
-  isPanningRunning: SharedValue<boolean>
-  isMouseDownForPanning: SharedValue<boolean>
-}) => {
-  const xInternal = useSharedValue(current.x)
-  const yInternal = useSharedValue(current.y)
-
-  useAnimatedReaction(
-    () => target.x.value,
-    currentValue => {
-      if (isPanningRunning.value === true) {
-        if (isMouseDownForPanning.value === true) {
-          xInternal.value = currentValue
-        } else {
-          xInternal.value = withTiming(current.x, animationConfigBack)
-        }
-      } else {
-        xInternal.value = withTiming(target.x.value, animationConfigForward)
-      }
-    },
-  )
-  useAnimatedReaction(
-    () => target.y.value,
-    currentValue => {
-      if (isPanningRunning.value === true) {
-        if (isMouseDownForPanning.value === true) {
-          yInternal.value = currentValue
-        } else {
-          yInternal.value = withTiming(current.y, animationConfigBack)
-        }
-      } else {
-        yInternal.value = withTiming(target.y.value, animationConfigForward)
-      }
-    },
-  )
-
-  return (
-    <Circle cx={xInternal} cy={yInternal} r={20} color={target.color}>
-      <Paint color="black" style="stroke" strokeWidth={1} />
-    </Circle>
-  )
-}
 
 const createGrid = ({
   rows,
@@ -405,7 +295,7 @@ export const Hue: React.FC = () => {
   const target = currentGrid.map((currentVertex, vertexIndex) => {
     const nextVertex = targetGrid[vertexIndex]
 
-    const target = {
+    return {
       x: useDerivedValue(
         () => currentVertex.x - (nextVertex.x - currentVertex.x) * offset.value,
       ),
@@ -418,8 +308,6 @@ export const Hue: React.FC = () => {
         ),
       ),
     }
-
-    return target
   })
 
   useAnimatedReaction(
@@ -452,25 +340,79 @@ export const Hue: React.FC = () => {
       offset.value = 0
     })
 
+  const xInternal = currentGrid.map(c => useSharedValue(c.x))
+  const yInternal = currentGrid.map(c => useSharedValue(c.y))
+
+  useAnimatedReaction(
+    () => target[0].x.value,
+    () => {
+      if (isPanningRunning.value === true) {
+        if (isMouseDownForPanning.value === true) {
+          xInternal.map((x, i) => (x.value = target[i].x.value))
+        } else {
+          xInternal.map(
+            (x, i) =>
+              (x.value = withTiming(currentGrid[i].x, animationConfigBack)),
+          )
+        }
+      } else {
+        xInternal.map(
+          (x, i) =>
+            (x.value = withTiming(target[i].x.value, animationConfigForward)),
+        )
+      }
+    },
+  )
+
+  useAnimatedReaction(
+    () => target[0].y.value,
+    () => {
+      if (isPanningRunning.value === true) {
+        if (isMouseDownForPanning.value === true) {
+          yInternal.map((y, i) => (y.value = target[i].y.value))
+        } else {
+          yInternal.map(
+            (y, i) =>
+              (y.value = withTiming(currentGrid[i].y, animationConfigBack)),
+          )
+        }
+      } else {
+        yInternal.map(
+          (y, i) =>
+            (y.value = withTiming(target[i].y.value, animationConfigForward)),
+        )
+      }
+    },
+  )
+
+  const derivedVertices = useDerivedValue(() =>
+    xInternal.map((x, i) => ({
+      x: x.value,
+      y: yInternal[i].value,
+    })),
+  )
+
+  const colors = useDerivedValue(() => target.map(vertex => vertex.color.value))
+
   return (
     <View style={{ flex: 1 }}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <GestureDetector gesture={pan}>
           <Canvas style={{ flex: 1, backgroundColor: 'white' }}>
             <HueBackground
-              current={currentGrid}
-              targetVertices={target}
-              isPanningRunning={isPanningRunning}
-              isMouseDownForPanning={isMouseDownForPanning}
+              colors={colors}
+              target={target}
+              derivedVertices={derivedVertices}
             />
-            {currentGrid.map((vertex, i) => (
-              <ACircle
+            {xInternal.map((x, i) => (
+              <Circle
                 key={i}
-                current={vertex}
-                target={target[i]}
-                isPanningRunning={isPanningRunning}
-                isMouseDownForPanning={isMouseDownForPanning}
-              />
+                cx={x}
+                cy={yInternal[i]}
+                r={20}
+                color={target[i].color}>
+                <Paint color="black" style="stroke" strokeWidth={1} />
+              </Circle>
             ))}
           </Canvas>
         </GestureDetector>
