@@ -8,6 +8,7 @@ import {
   useAnimatedReaction,
   useDerivedValue,
   useSharedValue,
+  withTiming,
 } from 'react-native-reanimated'
 import {
   Gesture,
@@ -15,22 +16,95 @@ import {
   GestureHandlerRootView,
 } from 'react-native-gesture-handler'
 
+const colorStream = [
+  'red',
+  'green',
+  'blue',
+  'orange',
+  'yellow',
+  'red',
+  'green',
+  'blue',
+  'orange',
+  'yellow',
+  'red',
+  'green',
+  'blue',
+  'orange',
+  'yellow',
+].reverse() // last element is current, red
+
 type Vertex = { x: number; y: number }
 type ColoredVertex = Vertex & { color: string }
 
 const ACircle = ({
   current,
   target,
-  offset,
+  isPanningRunning,
+  isMouseDownForPanning,
 }: {
   current: ColoredVertex
   target: { x: SharedValue<number>; y: SharedValue<number> } & {
     color: SharedValue<string>
   }
-  offset: SharedValue<number>
+  isPanningRunning: SharedValue<boolean>
+  isMouseDownForPanning: SharedValue<boolean>
 }) => {
+  const animationConfig = { duration: 300 }
+
+  const xInternal = useSharedValue(current.x)
+  const yInternal = useSharedValue(current.y)
+
+  useAnimatedReaction(
+    () => target.x.value,
+    currentValue => {
+      // console.log('isPanningRunning: ', isPanningRunning.value)
+      if (isPanningRunning.value === true) {
+        if (isMouseDownForPanning.value === true) {
+          xInternal.value = currentValue
+        } else {
+          xInternal.value = withTiming(current.x, animationConfig)
+        }
+      } else {
+        xInternal.value = withTiming(target.x.value, animationConfig)
+      }
+    },
+  )
+  useAnimatedReaction(
+    () => target.y.value,
+    currentValue => {
+      if (isPanningRunning.value === true) {
+        if (isMouseDownForPanning.value === true) {
+          yInternal.value = currentValue
+        } else {
+          yInternal.value = withTiming(current.y, animationConfig)
+        }
+      } else {
+        yInternal.value = withTiming(target.y.value, animationConfig)
+      }
+    },
+  )
+
+  // ***** Logging Only *****
+  // useAnimatedReaction(
+  //   () => xInternal.value,
+  //   currentValue => {
+  //     console.log('xInternal: ', currentValue)
+  //   },
+  // )
+  // useAnimatedReaction(
+  //   () => isPanningRunning.value,
+  //   currentValue => {
+  //     console.log('isPanningRunning: ', currentValue)
+  //   },
+  // )
+  // useEffect(() => {
+  //   console.log('current: ', current.x)
+  // }, [current])
+  // ***** Logging Only *****
+
   return (
-    <Circle cx={target.x} cy={target.y} r={20} color={target.color}>
+    <Circle cx={xInternal} cy={yInternal} r={20} color={target.color}>
       <Paint color="black" style="stroke" strokeWidth={1} />
     </Circle>
   )
@@ -140,57 +214,54 @@ const getTargetGridAtStep = ({
   return nextGrid
 }
 
-const getNextTargetGrid = ({
-  gridStreams,
-  current,
-}: {
-  gridStreams: ColoredVertex[][]
-  current: number[]
-}) => getTargetGridAtStep({ gridStreams, current, step: -1 })
-
 const printGridData = ({
   gridStreams,
   currentGrid,
   targetGrid,
 }: {
-  gridStreams: ColoredVertex[][]
-  currentGrid: ColoredVertex[]
-  targetGrid: ColoredVertex[]
+  gridStreams?: ColoredVertex[][]
+  currentGrid?: ColoredVertex[]
+  targetGrid?: ColoredVertex[]
 }) => {
-  // console.log('\n***** gridStreams *****\n')
-  // gridStreams.forEach(stream => {
-  //   console.log(
-  //     `\n*** Stream start for x: ${stream.at(-1)?.x}, y: ${
-  //       stream.at(-1)?.y
-  //     } *** \n`,
-  //   )
-  //   stream
-  //     .reverse()
-  //     .forEach(vertex =>
-  //       console.log({ x: vertex.x, y: vertex.y, c: vertex.color }),
-  //     )
-  //   console.log('\n*** Stream end *** \n')
-  // })
-  console.log('***************\n\n')
-  console.log('\n***** currentGrid *****\n')
-  currentGrid.forEach(vertex =>
-    console.log({ _x: vertex.x, _y: vertex.y, c: vertex.color }),
-  )
-  console.log('\n\n')
-  console.log('\n***** nextGrid *****\n')
-  targetGrid.forEach(vertex =>
-    console.log({ _x: vertex.x, _y: vertex.y, c: vertex.color }),
-  )
-  console.log('***************\n\n')
+  if (gridStreams) {
+    console.log('\n***** gridStreams *****\n')
+    gridStreams.forEach(stream => {
+      console.log(
+        `\n*** Stream start for x: ${stream.at(-1)?.x}, y: ${
+          stream.at(-1)?.y
+        } *** \n`,
+      )
+      stream
+        .reverse()
+        .forEach(vertex =>
+          console.log({ x: vertex.x, y: vertex.y, c: vertex.color }),
+        )
+      console.log('\n*** Stream end *** \n')
+    })
+    console.log('***************\n\n')
+  }
+  if (currentGrid) {
+    console.log('\n***** currentGrid *****\n')
+    currentGrid.forEach((vertex, i) =>
+      console.log({ i, _x: vertex.x, _y: vertex.y, c: vertex.color }),
+    )
+  }
+  if (targetGrid) {
+    console.log('\n\n')
+    console.log('\n***** nextGrid *****\n')
+    targetGrid.forEach((vertex, i) =>
+      console.log({ i, _x: vertex.x, _y: vertex.y, c: vertex.color }),
+    )
+    console.log('***************\n\n')
+  }
 }
 
 export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
 
   const cols = 1,
-    rows = 1,
-    pages = 2,
-    colorStream = ['red', 'green', 'blue', 'orange'].reverse() // last element is current, red
+    rows = 2,
+    pages = 3
 
   const initialGridStreams = createStreamedGrid({
     rows,
@@ -200,30 +271,35 @@ export const Hue: React.FC = () => {
     height,
     colorStream,
   })
+  // Array<number>(initialGridStreams.length).fill(0),
+  const initialStep = Array<number>(initialGridStreams.length).fill(0)
 
-  const [gridStreams, seGridStreams] = useState(initialGridStreams)
+  //.slice(2, 3)
+  const [gridStreams, _] = useState(initialGridStreams)
+  const [step, setStep] = useState(initialStep)
 
-  const [currentStreamStep, setCurrentGridStream] = useState(
-    Array<number>(initialGridStreams.length).fill(0),
-  )
-
-  const currentGrid = useMemo(
-    () => getCurrentGrid({ gridStreams, current: currentStreamStep }),
-    [gridStreams, currentStreamStep],
-  )
+  const currentGrid = useMemo(() => {
+    return getCurrentGrid({ gridStreams, current: step })
+  }, [gridStreams, step])
   const targetGrid = useMemo(
-    () => getNextTargetGrid({ gridStreams, current: currentStreamStep }),
-    [gridStreams, currentStreamStep],
+    () =>
+      getTargetGridAtStep({
+        gridStreams,
+        current: step,
+        step: -1,
+      }),
+    [gridStreams, step],
   )
 
   printGridData({
-    gridStreams,
-    currentGrid: currentGrid,
-    targetGrid: targetGrid,
+    //   // currentGrid,
+    //   // gridStreams,
+    //   // targetGrid,
   })
 
   const offset = useSharedValue(0)
-  const disablePan = useSharedValue(false)
+  const isPanningRunning = useSharedValue(true)
+  const isMouseDownForPanning = useSharedValue(false)
 
   const target = currentGrid.map((currentVertex, vertexIndex) => {
     const nextVertex = targetGrid[vertexIndex]
@@ -248,23 +324,30 @@ export const Hue: React.FC = () => {
   useAnimatedReaction(
     () => offset.value,
     () => {
-      if (-offset.value > 0.5 && disablePan.value === false) {
-        disablePan.value = true
-        runOnJS(setCurrentGridStream)(currentStreamStep.map(c => c - 1))
+      if (isPanningRunning.value === true) {
+        if (-offset.value > 0.5) {
+          isPanningRunning.value = false
+          runOnJS(setStep)(step.map(c => c - 1))
+        }
       }
     },
   )
 
   const pan = Gesture.Pan()
     .onStart(() => {
-      disablePan.value = false
+      isPanningRunning.value = true
+      isMouseDownForPanning.value = true
       offset.value = 0
     })
     .onUpdate(event => {
-      if (disablePan.value) return
-      offset.value = (event.translationX / width) * 1
+      if (isPanningRunning.value == false) {
+        return
+      } else {
+        offset.value = (event.translationX / width) * 1
+      }
     })
     .onEnd(() => {
+      isMouseDownForPanning.value = false
       offset.value = 0
     })
 
@@ -278,7 +361,8 @@ export const Hue: React.FC = () => {
                 key={i}
                 current={vertex}
                 target={target[i]}
-                offset={offset}
+                isPanningRunning={isPanningRunning}
+                isMouseDownForPanning={isMouseDownForPanning}
               />
             ))}
           </Canvas>
