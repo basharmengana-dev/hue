@@ -1,161 +1,87 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 import {
   Canvas,
   Circle,
   Paint,
-  type SkPoint,
-  vec,
-  Vertices,
-  Vector,
   Path,
+  Vertices,
 } from '@shopify/react-native-skia'
-import { Button, View, useWindowDimensions } from 'react-native'
+import { View, useWindowDimensions } from 'react-native'
 import {
-  Easing,
-  ReduceMotion,
   SharedValue,
-  interpolate,
+  interpolateColor,
   runOnJS,
+  useAnimatedReaction,
   useDerivedValue,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated'
-import cdt2d from 'cdt2d'
-import {
-  mixedColorPalette,
-  mixedColorPalette2,
-  palette,
-  shufflePalette,
-  yellowColorPalette,
-} from './colorPalette'
-import { createNoise2D } from './SimplexNoise'
 import {
   Gesture,
   GestureDetector,
   GestureHandlerRootView,
-  PanGesture,
 } from 'react-native-gesture-handler'
+import cdt2d from 'cdt2d'
 
-const animationConfig = {
-  duration: 1300,
-  easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-  reduceMotion: ReduceMotion.System,
-}
+const colorStream = [
+  'red',
+  'green',
+  'blue',
+  'orange',
+  'yellow',
+  'red',
+  'green',
+  'blue',
+  'orange',
+  'yellow',
+  'red',
+  'green',
+  'blue',
+  'orange',
+  'yellow',
+].reverse()
 
-const ACircle = ({
-  initialVertex,
-  targetVertex,
-  color,
-  offset,
-}: {
-  initialVertex: SkPoint
-  targetVertex: SkPoint
-  color: string
-  offset: SharedValue<number>
-}) => {
-  const cx = useSharedValue(initialVertex.x)
-  const cy = useSharedValue(initialVertex.y)
+const animationConfigForward = { duration: 400 }
+const animationConfigBack = { duration: 200 }
 
-  // // Respond to changes in targetVertex to trigger animation
-  // useEffect(() => {
-  //   // cx.value = withTiming(targetVertex.x, animationConfig)
-  //   // cy.value = withTiming(targetVertex.y, animationConfig)
-  //   progress.value = withTiming(1, animationConfig)
-  // }, [targetVertex])
-
-  // const xWithOffset = useDerivedValue(() => cx.value + offset.value)
-  const xD = useDerivedValue(
-    () => cx.value - (targetVertex.x - cx.value) * offset.value,
-  )
-
-  // move the circle manually using derived value
-  // when user removes their finger from the screen, we want
-  // to use withTiming to animate to the targetVertex.x position
-  // when that poisition is reached then we want to use the net target vertex
-  // the target vertex will either be left or right of the point
-  // and each target vertex has a precomputed noise to it
-
-  return (
-    <Circle cx={xD} cy={cy} r={20} color={color}>
-      <Paint color="black" style="stroke" strokeWidth={1} />
-    </Circle>
-  )
-}
-
-const ATriangle = ({
-  initialVertices,
-  targetVertices,
+const HueBackground = ({
   colors,
-  onAnimationComplete,
-  offset,
-  debug = false,
+  target,
+  derivedVertices,
 }: {
-  initialVertices: SkPoint[]
-  targetVertices: SkPoint[]
-  colors: string[]
-  onAnimationComplete: () => void
-  offset: SharedValue<number>
-  debug?: boolean
+  colors: Readonly<SharedValue<string[]>>
+  target: {
+    x: Readonly<SharedValue<number>>
+    y: Readonly<SharedValue<number>>
+    color: Readonly<SharedValue<string>>
+  }[]
+  derivedVertices: Readonly<
+    SharedValue<
+      {
+        x: number
+        y: number
+      }[]
+    >
+  >
 }) => {
-  const vertices_x = initialVertices.map(({ x }) => useSharedValue(x))
-  const vertices_y = initialVertices.map(({ y }) => useSharedValue(y))
-
-  let animationCount = useSharedValue(0)
-  useEffect(() => {
-    const onSingleAnimationComplete = () => {
-      'worklet'
-      animationCount.value += 1
-      // console.log(animationCount.value)
-      if (animationCount.value === targetVertices.length) {
-        runOnJS(onAnimationComplete)() // Call the passed callback once all animations are complete
-        animationCount.value = 0
-      }
-    }
-
-    targetVertices.forEach((targetVertex, i) => {
-      vertices_x[i].value = withTiming(
-        targetVertex.x,
-        animationConfig,
-        onSingleAnimationComplete,
-      )
-      vertices_y[i].value = withTiming(targetVertex.y, animationConfig)
-    })
-  }, [targetVertices])
-
-  const triangleVertices = targetVertices ?? initialVertices
   const triangles = useMemo(
-    () => cdt2d(triangleVertices.map(({ x, y }) => [x, y])),
+    () => cdt2d(target.map(({ x, y }) => [x.value, y.value])),
     [],
   )
   const indices = triangles.flat()
 
   const path = useDerivedValue(() => {
-    const f = ({ x, y }: Vector) => [x, y].join(',')
-    // combine vertices_x and vertices_y into a single array of vertices so that they can be indeced by the triangles array below
-    const vertices = vertices_x.map((x, i) => ({
-      x: x.value + offset.value,
-      y: vertices_y[i].value,
-    }))
+    const f = ({ x, y }: Vertex) => [x, y].join(',')
 
-    return debug
-      ? triangles
-          .map(([a, b, c]: [number, number, number]) => {
-            const v1 = vertices[a]
-            const v2 = vertices[b]
-            const v3 = vertices[c]
-            return `M${f(v1)} L${f(v2)} L${f(v3)} Z`
-          })
-          .join('')
-      : ''
-  }, [vertices_x, vertices_y])
-
-  // combine vertices_x and vertices_y into a single array of vertices and stored in derivedVertices
-  const derivedVertices = useDerivedValue(() =>
-    vertices_x.map((x, i) => ({
-      x: x.value + offset.value,
-      y: vertices_y[i].value,
-    })),
-  )
+    return triangles
+      .map(([a, b, c]: [number, number, number]) => {
+        const v1 = derivedVertices.value[a]
+        const v2 = derivedVertices.value[b]
+        const v3 = derivedVertices.value[c]
+        return `M${f(v1)} L${f(v2)} L${f(v3)} Z`
+      })
+      .join('')
+  })
 
   return (
     <>
@@ -172,9 +98,9 @@ const ATriangle = ({
   )
 }
 
-// A function that finds a grid of ponts with R rows and C columns per width and let P mark the number of pages
-// The grid is used to create a grid of circles
-// The function returns an array of SkPoint, hsize and vSize
+type Vertex = { x: number; y: number }
+type ColoredVertex = Vertex & { color: string }
+
 const createGrid = ({
   rows,
   cols,
@@ -190,162 +116,343 @@ const createGrid = ({
 }) => {
   const hSize = width / cols
   const vSize = height / rows
-  const totalWidth = pages * (hSize * cols)
-  const totalColumns = Math.ceil(totalWidth / hSize) + 1
+  const totalWidth = width * pages
+  const totalColumns = cols + Math.ceil(totalWidth / hSize)
   const totalRows = rows + 1
+
   const grid = Array.from({ length: totalColumns }, (_, col) =>
-    Array.from({ length: totalRows }, (_, row) =>
-      vec(col * hSize, row * vSize),
+    Array.from(
+      { length: totalRows },
+      (_, row) =>
+        ({
+          x: col * hSize,
+          y: row * vSize,
+        } as Vertex),
     ),
   ).flat()
 
-  return { grid, hSize, vSize, pageSize: hSize * cols, totalWidth }
+  return { grid, hSize, vSize, totalColumns }
 }
 
-const panGridLeft = ({
-  vertices,
-  hSize,
+const createStreamedGrid = ({
+  rows,
+  cols,
+  pages,
+  width,
+  height,
+  colorStream,
 }: {
-  vertices: SkPoint[]
-  hSize: number
-}) => vertices.map((vertex, i) => vec(vertex.x - hSize, vertex.y))
+  rows: number
+  cols: number
+  pages: number
+  width: number
+  height: number
+  colorStream: string[]
+}) => {
+  const {
+    grid: baseGrid,
+    hSize,
+    totalColumns,
+  } = createGrid({
+    rows,
+    cols,
+    pages,
+    width,
+    height,
+  })
+
+  return baseGrid.map(({ x, y }) =>
+    Array.from(
+      { length: totalColumns + 1 },
+      (_, i) =>
+        ({
+          x: x + hSize * (i - totalColumns),
+          y: y,
+          color: colorStream[i],
+        } as ColoredVertex),
+    ),
+  )
+}
+
+const getCurrentGrid = ({
+  gridStreams,
+  current,
+}: {
+  gridStreams: ColoredVertex[][]
+  current: number[]
+}) =>
+  gridStreams.map((stream, index) => stream[stream.length - 1 + current[index]])
+
+const getTargetGridAtStep = ({
+  gridStreams,
+  current,
+  step,
+}: {
+  gridStreams: ColoredVertex[][]
+  current: number[]
+  step: number
+}) => {
+  const updatedCurrent = current.map(c => c + step)
+
+  const nextGrid = gridStreams.map((stream, index) => {
+    const newPositionIndex = Math.max(
+      0,
+      Math.min(stream.length - 1, stream.length - 1 + updatedCurrent[index]),
+    )
+    return stream[newPositionIndex]
+  })
+
+  return nextGrid
+}
+
+const printGridData = ({
+  gridStreams,
+  currentGrid,
+  targetGrid,
+}: {
+  gridStreams?: ColoredVertex[][]
+  currentGrid?: ColoredVertex[]
+  targetGrid?: ColoredVertex[]
+}) => {
+  if (gridStreams) {
+    console.log('\n***** gridStreams *****\n')
+    gridStreams.forEach(stream => {
+      console.log(
+        `\n*** Stream start for x: ${stream.at(-1)?.x}, y: ${
+          stream.at(-1)?.y
+        } *** \n`,
+      )
+      stream
+        .reverse()
+        .forEach(vertex =>
+          console.log({ x: vertex.x, y: vertex.y, c: vertex.color }),
+        )
+      console.log('\n*** Stream end *** \n')
+    })
+    console.log('***************\n\n')
+  }
+  if (currentGrid) {
+    console.log('\n***** currentGrid *****\n')
+    currentGrid.forEach((vertex, i) =>
+      console.log({ i, _x: vertex.x, _y: vertex.y, c: vertex.color }),
+    )
+  }
+  if (targetGrid) {
+    console.log('\n\n')
+    console.log('\n***** nextGrid *****\n')
+    targetGrid.forEach((vertex, i) =>
+      console.log({ i, _x: vertex.x, _y: vertex.y, c: vertex.color }),
+    )
+    console.log('***************\n\n')
+  }
+}
 
 export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
-  const [debug, setDebug] = useState(true)
 
-  const cols = 1,
-    rows = 1,
-    pages = 1
-  const {
-    grid: initialVertices,
-    hSize,
-    vSize,
-    pageSize,
-    totalWidth,
-  } = useMemo(
-    () => createGrid({ cols, rows, pages, width, height }),
-    [width, height],
+  const cols = 2,
+    rows = 2,
+    pages = 4
+
+  const initialGridStreams = createStreamedGrid({
+    rows,
+    cols,
+    pages,
+    width,
+    height,
+    colorStream,
+  })
+  // Array<number>(initialGridStreams.length).fill(0),
+  const initialStep = Array<number>(initialGridStreams.length).fill(0)
+
+  //.slice(2, 3)
+  const [gridStreams, _] = useState(initialGridStreams)
+  const [step, setStep] = useState(initialStep)
+
+  const currentGrid = useMemo(() => {
+    return getCurrentGrid({ gridStreams, current: step })
+  }, [gridStreams, step])
+  const targetGrid = useMemo(
+    () =>
+      getTargetGridAtStep({
+        gridStreams,
+        current: step,
+        step: -1,
+      }),
+    [gridStreams, step],
   )
 
-  const leftGrid = panGridLeft({ vertices: initialVertices, hSize })
-
-  const [vertices, setVertices] = useState<SkPoint[]>(initialVertices)
-
-  const callback = () => {
-    console.log('Animation completed!')
-  }
-
-  const noises = useMemo(() => vertices.map(() => createNoise2D()), [vertices])
-
-  const xAmplitude = hSize * 0.3
-  const yAmplitude = vSize * 0.3
-  const frequency = 0.1
-  const panLeft = () => {
-    console.log('panLeft')
-    const targetVertices = vertices.map((vertex, i) => {
-      const targetVector = vec(vertex.x - pageSize, vertex.y)
-
-      const isEdge =
-        vertex.x === 0 ||
-        vertex.x === width ||
-        vertex.y === 0 ||
-        vertex.y === height
-      const isOneOfLastFourVertices = i >= vertices.length - (cols + 1)
-
-      if (isEdge || isOneOfLastFourVertices) return targetVector
-
-      const noise = noises[i]
-      return vec(
-        targetVector.x + xAmplitude * noise(targetVector.x * frequency, 0),
-        targetVector.y + yAmplitude * noise(0, targetVector.y * frequency),
-      )
-    })
-    setVertices(targetVertices)
-  }
-
-  const panRight = () => {
-    console.log('panRight')
-    const targetVertex = vertices.map(vertex =>
-      vec(vertex.x + pageSize, vertex.y),
-    )
-    setVertices(targetVertex)
-  }
-
-  const colors = vertices.map(
-    (_, i) => shufflePalette(palette)[i % palette.length],
-  )
+  printGridData({
+    // currentGrid,
+    // gridStreams,
+    // targetGrid,
+  })
 
   const offset = useSharedValue(0)
+  const isPanningRunning = useSharedValue(true)
+  const isMouseDownForPanning = useSharedValue(false)
+  const direction = useSharedValue(0)
+  const xInternal = currentGrid.map(c => useSharedValue(c.x))
+  const yInternal = currentGrid.map(c => useSharedValue(c.y))
+  const animationComleted = useSharedValue(0)
+
+  const target = currentGrid.map((currentVertex, vertexIndex) => {
+    const nextVertex = targetGrid[vertexIndex]
+    return {
+      x: useDerivedValue(
+        () => currentVertex.x - (nextVertex.x - currentVertex.x) * offset.value,
+      ),
+      y: useDerivedValue(() => currentVertex.y),
+      color: useDerivedValue(() =>
+        interpolateColor(
+          Math.abs(offset.value),
+          [0, 1],
+          [currentVertex.color, nextVertex.color],
+        ),
+      ),
+    }
+  })
+
+  useAnimatedReaction(
+    () => offset.value,
+    () => {
+      if (isPanningRunning.value === true) {
+        if (Math.abs(offset.value) > 0.5 && direction.value !== 0) {
+          isPanningRunning.value = false
+          runOnJS(setStep)(step.map(c => c + direction.value))
+        }
+      }
+    },
+  )
 
   const pan = Gesture.Pan()
     .onStart(() => {
-      // Store the current offset value when the gesture starts
+      isPanningRunning.value = true
+      isMouseDownForPanning.value = true
       offset.value = 0
+      direction.value = 0
     })
     .onUpdate(event => {
-      // Adjust the sensiivity of the movement
-      // const sensitivity = 20 // Increase this value to make the movement slower
-      // const scaledTranslationX = event.translationX / sensitivity
+      if (direction.value === 0) {
+        direction.value = event.velocityX > 0 ? 1 : -1
+      }
 
-      // offset.value += scaledTranslationX // Accumulate the scaled translation to the offset
-      offset.value = event.translationX / hSize
+      if (isPanningRunning.value == false) {
+        return
+      } else {
+        offset.value = (event.translationX / width) * 1
+      }
     })
     .onEnd(() => {
-      // Optionally, you can handle logic here when the gesture ends
+      isMouseDownForPanning.value = false
       offset.value = 0
     })
+
+  useAnimatedReaction(
+    () => target[0].x.value,
+    () => {
+      if (isPanningRunning.value === true) {
+        if (isMouseDownForPanning.value === true) {
+          xInternal.forEach((x, i) => (x.value = target[i].x.value))
+        } else {
+          xInternal.forEach((x, i) => {
+            if (i === 0) {
+              //NOTE: Callback to keep track of animation completion
+              animationComleted.value = 0
+              x.value = withTiming(
+                currentGrid[i].x,
+                animationConfigBack,
+                isFinished => {
+                  if (isFinished) animationComleted.value = 1
+                },
+              )
+            } else {
+              x.value = withTiming(currentGrid[i].x, animationConfigBack)
+            }
+          })
+        }
+      } else {
+        xInternal.forEach((x, i) => {
+          if (i === 0) {
+            //NOTE: Callback to keep track of animation completion
+            animationComleted.value = 0
+            x.value = withTiming(
+              target[i].x.value,
+              animationConfigForward,
+              isFinished => {
+                if (isFinished) animationComleted.value = 1
+              },
+            )
+          } else {
+            x.value = withTiming(target[i].x.value, animationConfigForward)
+          }
+        })
+      }
+    },
+  )
+
+  useAnimatedReaction(
+    () => animationComleted.value,
+    (current, previous) => {
+      if (current === 1 && previous === 0) {
+        animationComleted.value = 0
+      }
+    },
+  )
+
+  useAnimatedReaction(
+    () => target[0].y.value,
+    () => {
+      if (isPanningRunning.value === true) {
+        if (isMouseDownForPanning.value === true) {
+          yInternal.forEach((y, i) => (y.value = target[i].y.value))
+        } else {
+          yInternal.forEach(
+            (y, i) =>
+              (y.value = withTiming(currentGrid[i].y, animationConfigBack)),
+          )
+        }
+      } else {
+        yInternal.forEach(
+          (y, i) =>
+            (y.value = withTiming(target[i].y.value, animationConfigForward)),
+        )
+      }
+    },
+  )
+
+  const derivedVertices = useDerivedValue(() =>
+    xInternal.map((x, i) => ({
+      x: x.value,
+      y: yInternal[i].value,
+    })),
+  )
+
+  const colors = useDerivedValue(() => target.map(vertex => vertex.color.value))
 
   return (
     <View style={{ flex: 1 }}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <GestureDetector gesture={pan}>
           <Canvas style={{ flex: 1, backgroundColor: 'white' }}>
-            {/* <ATriangle
-              initialVertices={initialVertices}
-              targetVertices={vertices}
+            <HueBackground
               colors={colors}
-              onAnimationComplete={callback}
-              offset={offset}
-              debug={debug}
-            /> */}
-            {debug &&
-              vertices.map((vertex, i) => (
-                <ACircle
-                  key={i}
-                  initialVertex={vertex}
-                  targetVertex={leftGrid[i]}
-                  color={colors[i]}
-                  offset={offset}
-                />
-              ))}
+              target={target}
+              derivedVertices={derivedVertices}
+            />
+            {xInternal.map((x, i) => (
+              <Circle
+                key={i}
+                cx={x}
+                cy={yInternal[i]}
+                r={20}
+                color={target[i].color}>
+                <Paint color="black" style="stroke" strokeWidth={1} />
+              </Circle>
+            ))}
           </Canvas>
         </GestureDetector>
       </GestureHandlerRootView>
-      <View
-        style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.8)',
-          position: 'absolute',
-          top: '93%',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          alignItems: 'center',
-          justifyContent: 'flex-start',
-          height: '7%',
-          flexDirection: 'row',
-        }}>
-        <Button title="⬅️" onPress={panLeft} />
-        <Button title="➡️" onPress={panRight} />
-        <Button
-          title="🔄"
-          onPress={() => {
-            offset.value = 0
-            setVertices(initialVertices)
-          }}
-        />
-        <Button title={debug ? '🟢' : '🐛'} onPress={() => setDebug(!debug)} />
-      </View>
     </View>
   )
 }

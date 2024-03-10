@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { Hue } from './src/Hue_P'
+import { Hue } from './src/Hue'
 
 const App = () => {
   return <Hue />
