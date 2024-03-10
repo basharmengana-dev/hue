@@ -39,7 +39,10 @@ const colorStream = [
   // 'blue',
   // 'orange',
   // 'yellow',
-].reverse() // last element is current, red
+].reverse()
+
+const animationConfigForward = { duration: 400 }
+const animationConfigBack = { duration: 200 }
 
 const HueBackground = ({
   current,
@@ -56,7 +59,33 @@ const HueBackground = ({
   isPanningRunning: SharedValue<boolean>
   isMouseDownForPanning: SharedValue<boolean>
 }) => {
+  const xInternal = current.map(c => useSharedValue(c.x))
+  const yInternal = current.map(c => useSharedValue(c.y))
+
   // ***** Vertices related code *****
+  useAnimatedReaction(
+    () => targetVertices[0].x.value,
+    () => {
+      if (isPanningRunning.value === true) {
+        if (isMouseDownForPanning.value === true) {
+          xInternal.map((x, i) => (x.value = targetVertices[i].x.value))
+        } else {
+          xInternal.map(
+            (x, i) => (x.value = withTiming(current[i].x, animationConfigBack)),
+          )
+        }
+      } else {
+        xInternal.map(
+          (x, i) =>
+            (x.value = withTiming(
+              targetVertices[i].x.value,
+              animationConfigForward,
+            )),
+        )
+      }
+    },
+  )
+
   const triangleVertices = targetVertices
   const triangles = useMemo(
     () => cdt2d(triangleVertices.map(({ x, y }) => [x.value, y.value])),
@@ -65,9 +94,9 @@ const HueBackground = ({
   const indices = triangles.flat()
   // useAnimatedReaction here instead
   const derivedVertices = useDerivedValue(() =>
-    targetVertices.map((vertex, i) => ({
-      x: vertex.x.value,
-      y: vertex.y.value,
+    xInternal.map((x, i) => ({
+      x: x.value,
+      y: yInternal[i].value,
     })),
   )
   const colors = useDerivedValue(() =>
@@ -78,16 +107,12 @@ const HueBackground = ({
   // ***** Path related code *****
   const path = useDerivedValue(() => {
     const f = ({ x, y }: Vertex) => [x, y].join(',')
-    const vertices = targetVertices.map((vertex, i) => ({
-      x: vertex.x.value,
-      y: vertex.y.value,
-    }))
 
     return triangles
       .map(([a, b, c]: [number, number, number]) => {
-        const v1 = vertices[a]
-        const v2 = vertices[b]
-        const v3 = vertices[c]
+        const v1 = derivedVertices.value[a]
+        const v2 = derivedVertices.value[b]
+        const v3 = derivedVertices.value[c]
         return `M${f(v1)} L${f(v2)} L${f(v3)} Z`
       })
       .join('')
@@ -125,9 +150,6 @@ const ACircle = ({
   isPanningRunning: SharedValue<boolean>
   isMouseDownForPanning: SharedValue<boolean>
 }) => {
-  const animationConfigForward = { duration: 500 }
-  const animationConfigBack = { duration: 300 }
-
   const xInternal = useSharedValue(current.x)
   const yInternal = useSharedValue(current.y)
 
@@ -139,7 +161,7 @@ const ACircle = ({
         if (isMouseDownForPanning.value === true) {
           xInternal.value = currentValue
         } else {
-          xInternal.value = withTiming(current.x, animationConfigForward)
+          xInternal.value = withTiming(current.x, animationConfigBack)
         }
       } else {
         xInternal.value = withTiming(target.x.value, animationConfigForward)
@@ -156,7 +178,7 @@ const ACircle = ({
           yInternal.value = withTiming(current.y, animationConfigBack)
         }
       } else {
-        yInternal.value = withTiming(target.y.value, animationConfigBack)
+        yInternal.value = withTiming(target.y.value, animationConfigForward)
       }
     },
   )
