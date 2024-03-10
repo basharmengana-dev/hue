@@ -4,6 +4,8 @@ import { View, useWindowDimensions } from 'react-native'
 import {
   SharedValue,
   interpolateColor,
+  runOnJS,
+  useAnimatedReaction,
   useDerivedValue,
   useSharedValue,
 } from 'react-native-reanimated'
@@ -116,7 +118,7 @@ const getCurrentGrid = ({
 }) =>
   gridStreams.map((stream, index) => stream[stream.length - 1 + current[index]])
 
-const getGridAtStep = ({
+const getTargetGridAtStep = ({
   gridStreams,
   current,
   step,
@@ -138,48 +140,48 @@ const getGridAtStep = ({
   return nextGrid
 }
 
-const getNextGrid = ({
+const getNextTargetGrid = ({
   gridStreams,
   current,
 }: {
   gridStreams: ColoredVertex[][]
   current: number[]
-}) => getGridAtStep({ gridStreams, current, step: -1 })
+}) => getTargetGridAtStep({ gridStreams, current, step: -1 })
 
-const consoleLogGridData = ({
+const printGridData = ({
   gridStreams,
   currentGrid,
-  nextGrid,
+  targetGrid,
 }: {
   gridStreams: ColoredVertex[][]
   currentGrid: ColoredVertex[]
-  nextGrid: ColoredVertex[]
+  targetGrid: ColoredVertex[]
 }) => {
-  console.log('\n***** gridStreams *****\n')
-  gridStreams.forEach(stream => {
-    console.log(
-      `\n*** Stream start for x: ${stream.at(-1)?.x}, y: ${
-        stream.at(-1)?.y
-      } *** \n`,
-    )
-    stream
-      .reverse()
-      .forEach(vertex =>
-        console.log({ x: vertex.x, y: vertex.y, c: vertex.color }),
-      )
-    console.log('\n*** Stream end *** \n')
-  })
-  console.log('\n\n')
+  // console.log('\n***** gridStreams *****\n')
+  // gridStreams.forEach(stream => {
+  //   console.log(
+  //     `\n*** Stream start for x: ${stream.at(-1)?.x}, y: ${
+  //       stream.at(-1)?.y
+  //     } *** \n`,
+  //   )
+  //   stream
+  //     .reverse()
+  //     .forEach(vertex =>
+  //       console.log({ x: vertex.x, y: vertex.y, c: vertex.color }),
+  //     )
+  //   console.log('\n*** Stream end *** \n')
+  // })
+  console.log('***************\n\n')
   console.log('\n***** currentGrid *****\n')
   currentGrid.forEach(vertex =>
     console.log({ _x: vertex.x, _y: vertex.y, c: vertex.color }),
   )
   console.log('\n\n')
   console.log('\n***** nextGrid *****\n')
-  nextGrid.forEach(vertex =>
+  targetGrid.forEach(vertex =>
     console.log({ _x: vertex.x, _y: vertex.y, c: vertex.color }),
   )
-  console.log('\n\n')
+  console.log('***************\n\n')
 }
 
 export const Hue: React.FC = () => {
@@ -198,35 +200,33 @@ export const Hue: React.FC = () => {
     height,
     colorStream,
   })
-  const initialCurrent = Array<number>(initialGridStreams.length).fill(0)
 
   const [gridStreams, seGridStreams] = useState(initialGridStreams)
-  const [current, setCurrent] = useState(initialCurrent)
-  const currentGrid = useMemo(
-    () => getCurrentGrid({ gridStreams, current }),
-    [gridStreams, current],
-  )
-  const nextGrid = useMemo(
-    () => getNextGrid({ gridStreams, current }),
-    [gridStreams, current],
+
+  const [currentStreamStep, setCurrentGridStream] = useState(
+    Array<number>(initialGridStreams.length).fill(0),
   )
 
-  consoleLogGridData({ gridStreams, currentGrid, nextGrid })
+  const currentGrid = useMemo(
+    () => getCurrentGrid({ gridStreams, current: currentStreamStep }),
+    [gridStreams, currentStreamStep],
+  )
+  const targetGrid = useMemo(
+    () => getNextTargetGrid({ gridStreams, current: currentStreamStep }),
+    [gridStreams, currentStreamStep],
+  )
+
+  printGridData({
+    gridStreams,
+    currentGrid: currentGrid,
+    targetGrid: targetGrid,
+  })
 
   const offset = useSharedValue(0)
-  const pan = Gesture.Pan()
-    .onStart(() => {
-      offset.value = 0
-    })
-    .onUpdate(event => {
-      offset.value = (event.translationX / width) * 1
-    })
-    .onEnd(() => {
-      offset.value = 0
-    })
+  const disablePan = useSharedValue(false)
 
   const target = currentGrid.map((currentVertex, vertexIndex) => {
-    const nextVertex = nextGrid[vertexIndex]
+    const nextVertex = targetGrid[vertexIndex]
 
     const target = {
       x: useDerivedValue(
@@ -245,18 +245,28 @@ export const Hue: React.FC = () => {
     return target
   })
 
-  useEffect(() => {
-    // if target is equal to current, then its time to update the target to the next
-    // target accoridng to the stream
-    // allow for some margin of error in the comparision
-    // if (
-    //     Math.abs(target.x.value - currentVertex.x) < 0.1 &&
-    //     Math.abs(target.y.value - currentVertex.y) < 0.1
-    //   ) {
-    //     // update current so the current currentGrid is the nextGrid
-    //     setCurrent(current.map((c, i) => c - 1))
-    //   }
-  }, [offset])
+  useAnimatedReaction(
+    () => offset.value,
+    () => {
+      if (-offset.value > 0.5 && disablePan.value === false) {
+        disablePan.value = true
+        runOnJS(setCurrentGridStream)(currentStreamStep.map(c => c - 1))
+      }
+    },
+  )
+
+  const pan = Gesture.Pan()
+    .onStart(() => {
+      disablePan.value = false
+      offset.value = 0
+    })
+    .onUpdate(event => {
+      if (disablePan.value) return
+      offset.value = (event.translationX / width) * 1
+    })
+    .onEnd(() => {
+      offset.value = 0
+    })
 
   return (
     <View style={{ flex: 1 }}>
