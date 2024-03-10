@@ -86,9 +86,8 @@ const HueBackground = ({
     },
   )
 
-  const triangleVertices = targetVertices
   const triangles = useMemo(
-    () => cdt2d(triangleVertices.map(({ x, y }) => [x.value, y.value])),
+    () => cdt2d(targetVertices.map(({ x, y }) => [x.value, y.value])),
     [],
   )
   const indices = triangles.flat()
@@ -156,7 +155,6 @@ const ACircle = ({
   useAnimatedReaction(
     () => target.x.value,
     currentValue => {
-      // console.log('isPanningRunning: ', isPanningRunning.value)
       if (isPanningRunning.value === true) {
         if (isMouseDownForPanning.value === true) {
           xInternal.value = currentValue
@@ -183,24 +181,6 @@ const ACircle = ({
     },
   )
 
-  // ***** Logging Only *****
-  // useAnimatedReaction(
-  //   () => xInternal.value,
-  //   currentValue => {
-  //     console.log('xInternal: ', currentValue)
-  //   },
-  // )
-  // useAnimatedReaction(
-  //   () => isPanningRunning.value,
-  //   currentValue => {
-  //     console.log('isPanningRunning: ', currentValue)
-  //   },
-  // )
-  // useEffect(() => {
-  //   console.log('current: ', current.x)
-  // }, [current])
-  // ***** Logging Only *****
-
   return (
     <Circle cx={xInternal} cy={yInternal} r={20} color={target.color}>
       <Paint color="black" style="stroke" strokeWidth={1} />
@@ -217,7 +197,7 @@ const createGrid = ({
 }: {
   rows: number
   cols: number
-  pages: number // New parameter to specify how much wider the grid should be
+  pages: number
   width: number
   height: number
 }) => {
