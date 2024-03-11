@@ -218,3 +218,45 @@
 //     </View>
 //   )
 // }
+
+// const printGridData = ({
+//     gridStreams,
+//     currentGrid,
+//     targetGrid,
+//   }: {
+//     gridStreams?: ColoredVertex[][]
+//     currentGrid?: ColoredVertex[]
+//     targetGrid?: ColoredVertex[]
+//   }) => {
+//     if (gridStreams) {
+//       console.log('\n***** gridStreams *****\n')
+//       gridStreams.forEach(stream => {
+//         console.log(
+//           `\n*** Stream start for x: ${stream.at(-1)?.x}, y: ${
+//             stream.at(-1)?.y
+//           } *** \n`,
+//         )
+//         stream
+//           .reverse()
+//           .forEach(vertex =>
+//             console.log({ x: vertex.x, y: vertex.y, c: vertex.color }),
+//           )
+//         console.log('\n*** Stream end *** \n')
+//       })
+//       console.log('***************\n\n')
+//     }
+//     if (currentGrid) {
+//       console.log('\n***** currentGrid *****\n')
+//       currentGrid.forEach((vertex, i) =>
+//         console.log({ i, _x: vertex.x, _y: vertex.y, c: vertex.color }),
+//       )
+//     }
+//     if (targetGrid) {
+//       console.log('\n\n')
+//       console.log('\n***** nextGrid *****\n')
+//       targetGrid.forEach((vertex, i) =>
+//         console.log({ i, _x: vertex.x, _y: vertex.y, c: vertex.color }),
+//       )
+//       console.log('***************\n\n')
+//     }
+//   }

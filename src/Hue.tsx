@@ -49,19 +49,17 @@ const HueBackground = ({
   target,
   derivedVertices,
 }: {
-  colors: Readonly<SharedValue<string[]>>
+  colors: SharedValue<string[]>
   target: {
-    x: Readonly<SharedValue<number>>
-    y: Readonly<SharedValue<number>>
-    color: Readonly<SharedValue<string>>
+    x: SharedValue<number>
+    y: SharedValue<number>
+    color: SharedValue<string>
   }[]
-  derivedVertices: Readonly<
-    SharedValue<
-      {
-        x: number
-        y: number
-      }[]
-    >
+  derivedVertices: SharedValue<
+    {
+      x: number
+      y: number
+    }[]
   >
 }) => {
   const triangles = useMemo(
@@ -179,9 +177,11 @@ const getCurrentGrid = ({
   current,
 }: {
   gridStreams: ColoredVertex[][]
-  current: number[]
-}) =>
-  gridStreams.map((stream, index) => stream[stream.length - 1 + current[index]])
+  current: number
+}) => {
+  'worklet'
+  return gridStreams.map((stream, index) => stream[stream.length - 1 + current])
+}
 
 const getTargetGridAtStep = ({
   gridStreams,
@@ -189,15 +189,16 @@ const getTargetGridAtStep = ({
   step,
 }: {
   gridStreams: ColoredVertex[][]
-  current: number[]
+  current: number
   step: number
 }) => {
-  const updatedCurrent = current.map(c => c + step)
+  'worklet'
+  const updatedCurrent = current + step
 
   const nextGrid = gridStreams.map((stream, index) => {
     const newPositionIndex = Math.max(
       0,
-      Math.min(stream.length - 1, stream.length - 1 + updatedCurrent[index]),
+      Math.min(stream.length - 1, stream.length - 1 + updatedCurrent),
     )
     return stream[newPositionIndex]
   })
@@ -205,121 +206,84 @@ const getTargetGridAtStep = ({
   return nextGrid
 }
 
-const printGridData = ({
-  gridStreams,
-  currentGrid,
-  targetGrid,
-}: {
-  gridStreams?: ColoredVertex[][]
-  currentGrid?: ColoredVertex[]
-  targetGrid?: ColoredVertex[]
-}) => {
-  if (gridStreams) {
-    console.log('\n***** gridStreams *****\n')
-    gridStreams.forEach(stream => {
-      console.log(
-        `\n*** Stream start for x: ${stream.at(-1)?.x}, y: ${
-          stream.at(-1)?.y
-        } *** \n`,
-      )
-      stream
-        .reverse()
-        .forEach(vertex =>
-          console.log({ x: vertex.x, y: vertex.y, c: vertex.color }),
-        )
-      console.log('\n*** Stream end *** \n')
-    })
-    console.log('***************\n\n')
-  }
-  if (currentGrid) {
-    console.log('\n***** currentGrid *****\n')
-    currentGrid.forEach((vertex, i) =>
-      console.log({ i, _x: vertex.x, _y: vertex.y, c: vertex.color }),
-    )
-  }
-  if (targetGrid) {
-    console.log('\n\n')
-    console.log('\n***** nextGrid *****\n')
-    targetGrid.forEach((vertex, i) =>
-      console.log({ i, _x: vertex.x, _y: vertex.y, c: vertex.color }),
-    )
-    console.log('***************\n\n')
-  }
-}
-
 export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
 
-  const cols = 2,
-    rows = 2,
+  const cols = 1,
+    rows = 1,
     pages = 4
 
-  const initialGridStreams = createStreamedGrid({
-    rows,
-    cols,
-    pages,
-    width,
-    height,
-    colorStream,
-  })
-  // Array<number>(initialGridStreams.length).fill(0),
-  const initialStep = Array<number>(initialGridStreams.length).fill(0)
-
-  //.slice(2, 3)
-  const [gridStreams, _] = useState(initialGridStreams)
-  const [step, setStep] = useState(initialStep)
-
-  const currentGrid = useMemo(() => {
-    return getCurrentGrid({ gridStreams, current: step })
-  }, [gridStreams, step])
-  const targetGrid = useMemo(
+  const gridStreams = useMemo(
     () =>
-      getTargetGridAtStep({
-        gridStreams,
-        current: step,
-        step: -1,
+      createStreamedGrid({
+        rows,
+        cols,
+        pages,
+        width,
+        height,
+        colorStream,
       }),
-    [gridStreams, step],
+    [],
   )
 
-  printGridData({
-    // currentGrid,
-    // gridStreams,
-    // targetGrid,
-  })
+  const step = useSharedValue(0)
+
+  const currentGrid = useDerivedValue(() =>
+    getCurrentGrid({ gridStreams, current: step.value }),
+  )
+  const targetGrid = useDerivedValue(() =>
+    getTargetGridAtStep({
+      gridStreams,
+      current: step.value,
+      step: -1,
+    }),
+  )
 
   const offset = useSharedValue(0)
   const isPanningRunning = useSharedValue(true)
   const isMouseDownForPanning = useSharedValue(false)
   const direction = useSharedValue(0)
-  const xInternal = currentGrid.map(c => useSharedValue(c.x))
-  const yInternal = currentGrid.map(c => useSharedValue(c.y))
+  const xInternal = currentGrid.value.map(c => useSharedValue(c.x))
+  const yInternal = currentGrid.value.map(c => useSharedValue(c.y))
+  const colorInternal = currentGrid.value.map(c => useSharedValue(c.color))
   const animationComleted = useSharedValue(0)
 
-  const target = currentGrid.map((currentVertex, vertexIndex) => {
-    const nextVertex = targetGrid[vertexIndex]
+  const target = currentGrid.value.map((currentVertex, vertexIndex) => {
     return {
-      x: useDerivedValue(
-        () => currentVertex.x - (nextVertex.x - currentVertex.x) * offset.value,
-      ),
-      y: useDerivedValue(() => currentVertex.y),
-      color: useDerivedValue(() =>
-        interpolateColor(
-          Math.abs(offset.value),
-          [0, 1],
-          [currentVertex.color, nextVertex.color],
-        ),
-      ),
+      x: useSharedValue(currentVertex.x),
+      y: useSharedValue(currentVertex.y),
+      color: useSharedValue(currentVertex.color),
     }
   })
 
   useAnimatedReaction(
     () => offset.value,
     () => {
-      if (isPanningRunning.value === true) {
-        if (Math.abs(offset.value) > 0.5 && direction.value !== 0) {
+      target.forEach((vertex, i) => {
+        vertex.x.value =
+          currentGrid.value[i].x -
+          (targetGrid.value[i].x - currentGrid.value[i].x) * offset.value
+        vertex.y.value = currentGrid.value[i].y
+        vertex.color.value = interpolateColor(
+          Math.abs(offset.value),
+          [0, 1],
+          [currentGrid.value[i].color, targetGrid.value[i].color],
+        )
+      })
+    },
+  )
+
+  useAnimatedReaction(
+    () => isMouseDownForPanning.value,
+    (current, previous) => {
+      if (current === false && previous === true) {
+        if (isPanningRunning.value === true && direction.value !== 0) {
+          if (Math.abs(offset.value) > 0.5) {
+            step.value = step.value + direction.value
+          }
+
+          offset.value = 0
           isPanningRunning.value = false
-          runOnJS(setStep)(step.map(c => c + direction.value))
         }
       }
     },
@@ -345,7 +309,6 @@ export const Hue: React.FC = () => {
     })
     .onEnd(() => {
       isMouseDownForPanning.value = false
-      offset.value = 0
     })
 
   useAnimatedReaction(
@@ -360,14 +323,14 @@ export const Hue: React.FC = () => {
               //NOTE: Callback to keep track of animation completion
               animationComleted.value = 0
               x.value = withTiming(
-                currentGrid[i].x,
+                currentGrid.value[i].x,
                 animationConfigBack,
                 isFinished => {
                   if (isFinished) animationComleted.value = 1
                 },
               )
             } else {
-              x.value = withTiming(currentGrid[i].x, animationConfigBack)
+              x.value = withTiming(currentGrid.value[i].x, animationConfigBack)
             }
           })
         }
@@ -392,15 +355,6 @@ export const Hue: React.FC = () => {
   )
 
   useAnimatedReaction(
-    () => animationComleted.value,
-    (current, previous) => {
-      if (current === 1 && previous === 0) {
-        animationComleted.value = 0
-      }
-    },
-  )
-
-  useAnimatedReaction(
     () => target[0].y.value,
     () => {
       if (isPanningRunning.value === true) {
@@ -409,7 +363,10 @@ export const Hue: React.FC = () => {
         } else {
           yInternal.forEach(
             (y, i) =>
-              (y.value = withTiming(currentGrid[i].y, animationConfigBack)),
+              (y.value = withTiming(
+                currentGrid.value[i].y,
+                animationConfigBack,
+              )),
           )
         }
       } else {
@@ -421,6 +378,29 @@ export const Hue: React.FC = () => {
     },
   )
 
+  useAnimatedReaction(
+    () => target[0].color.value,
+    () => {
+      colorInternal.forEach(
+        (color, i) =>
+          (color.value = interpolateColor(
+            Math.abs(offset.value),
+            [0, 1],
+            [currentGrid.value[i].color, targetGrid.value[i].color],
+          )),
+      )
+    },
+  )
+
+  useAnimatedReaction(
+    () => animationComleted.value,
+    (current, previous) => {
+      if (current === 1 && previous === 0) {
+        animationComleted.value = 0
+      }
+    },
+  )
+
   const derivedVertices = useDerivedValue(() =>
     xInternal.map((x, i) => ({
       x: x.value,
@@ -428,7 +408,7 @@ export const Hue: React.FC = () => {
     })),
   )
 
-  const colors = useDerivedValue(() => target.map(vertex => vertex.color.value))
+  const colors = useDerivedValue(() => colorInternal.map(color => color.value))
 
   return (
     <View style={{ flex: 1 }}>
@@ -446,7 +426,7 @@ export const Hue: React.FC = () => {
                 cx={x}
                 cy={yInternal[i]}
                 r={20}
-                color={target[i].color}>
+                color={colorInternal[i]}>
                 <Paint color="black" style="stroke" strokeWidth={1} />
               </Circle>
             ))}
