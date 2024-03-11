@@ -23,26 +23,10 @@ import {
 } from 'react-native-gesture-handler'
 import cdt2d from 'cdt2d'
 
-const colorStream = [
-  'red',
-  'green',
-  'blue',
-  'orange',
-  'yellow',
-  'red',
-  'green',
-  'blue',
-  'orange',
-  'yellow',
-  'red',
-  'green',
-  'blue',
-  'orange',
-  'yellow',
-].reverse()
+const colorStream = ['pink', 'orange', 'purple', 'green'].reverse()
 
-const animationConfigForward = { duration: 400 }
-const animationConfigBack = { duration: 200 }
+const animationConfigForward = { duration: 300 }
+const animationConfigBack = { duration: 300 }
 
 const HueBackground = ({
   colors,
@@ -211,7 +195,7 @@ export const Hue: React.FC = () => {
 
   const cols = 1,
     rows = 1,
-    pages = 4
+    pages = 2
 
   const gridStreams = useMemo(
     () =>
@@ -245,7 +229,6 @@ export const Hue: React.FC = () => {
   const direction = useSharedValue(0)
   const xInternal = currentGrid.value.map(c => useSharedValue(c.x))
   const yInternal = currentGrid.value.map(c => useSharedValue(c.y))
-  const colorInternal = currentGrid.value.map(c => useSharedValue(c.color))
   const animationComleted = useSharedValue(0)
 
   const target = currentGrid.value.map((currentVertex, vertexIndex) => {
@@ -256,20 +239,43 @@ export const Hue: React.FC = () => {
     }
   })
 
+  const leftAtColor = currentGrid.value.map(vertex =>
+    useSharedValue(vertex.color),
+  )
   useAnimatedReaction(
     () => offset.value,
-    () => {
+    (current, previous) => {
       target.forEach((vertex, i) => {
         vertex.x.value =
           currentGrid.value[i].x -
           (targetGrid.value[i].x - currentGrid.value[i].x) * offset.value
         vertex.y.value = currentGrid.value[i].y
-        vertex.color.value = interpolateColor(
-          Math.abs(offset.value),
-          [0, 1],
-          [currentGrid.value[i].color, targetGrid.value[i].color],
-        )
+
+        if (current !== 0) {
+          const color_ = interpolateColor(
+            Math.abs(offset.value),
+            [0, 1],
+            [currentGrid.value[i].color, targetGrid.value[i].color],
+          )
+          vertex.color.value = color_
+          leftAtColor[i].value = color_
+        }
       })
+    },
+  )
+
+  useAnimatedReaction(
+    () => xInternal[0].value,
+    () => {
+      if (isMouseDownForPanning.value === false && direction.value !== 0) {
+        target.forEach((vertex, i) => {
+          vertex.color.value = interpolateColor(
+            Math.abs(xInternal[0].value - target[0].x.value) / width,
+            [0.5, 0],
+            [leftAtColor[i].value, currentGrid.value[i].color],
+          )
+        })
+      }
     },
   )
 
@@ -379,20 +385,6 @@ export const Hue: React.FC = () => {
   )
 
   useAnimatedReaction(
-    () => target[0].color.value,
-    () => {
-      colorInternal.forEach(
-        (color, i) =>
-          (color.value = interpolateColor(
-            Math.abs(offset.value),
-            [0, 1],
-            [currentGrid.value[i].color, targetGrid.value[i].color],
-          )),
-      )
-    },
-  )
-
-  useAnimatedReaction(
     () => animationComleted.value,
     (current, previous) => {
       if (current === 1 && previous === 0) {
@@ -408,7 +400,7 @@ export const Hue: React.FC = () => {
     })),
   )
 
-  const colors = useDerivedValue(() => colorInternal.map(color => color.value))
+  const colors = useDerivedValue(() => target.map(vertex => vertex.color.value))
 
   return (
     <View style={{ flex: 1 }}>
@@ -426,7 +418,7 @@ export const Hue: React.FC = () => {
                 cx={x}
                 cy={yInternal[i]}
                 r={20}
-                color={colorInternal[i]}>
+                color={target[i].color}>
                 <Paint color="black" style="stroke" strokeWidth={1} />
               </Circle>
             ))}
