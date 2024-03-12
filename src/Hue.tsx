@@ -23,7 +23,13 @@ import {
 } from 'react-native-gesture-handler'
 import cdt2d from 'cdt2d'
 
-const colorStream = ['pink', 'orange', 'purple', 'green', 'aqua'].reverse()
+const colorStream = [
+  '#FFB6C1',
+  '#00FFFF',
+  '#90EE90',
+  '#FFDAB9',
+  '#D8BFD8',
+].reverse()
 
 const animationConfigForward = { duration: 300 }
 const animationConfigBack = { duration: 300 }
@@ -144,15 +150,11 @@ const createStreamedGrid = ({
   })
 
   return baseGrid.map(({ x, y }) =>
-    Array.from(
-      { length: totalColumns + 1 },
-      (_, i) =>
-        ({
-          x: x + hSize * (i - totalColumns),
-          y: y,
-          color: colorStream[i],
-        } as ColoredVertex),
-    ),
+    Array.from({ length: totalColumns - 1 }, (_, i) => ({
+      x: x + hSize * (i + 2 - totalColumns),
+      y: y,
+      color: colorStream[i],
+    })),
   )
 }
 
@@ -164,7 +166,7 @@ const getCurrentGrid = ({
   current: number
 }) => {
   'worklet'
-  return gridStreams.map((stream, index) => stream[stream.length - 1 + current])
+  return gridStreams.map(stream => stream[stream.length - 1 + current])
 }
 
 const getTargetGridAtStep = ({
@@ -195,7 +197,9 @@ export const Hue: React.FC = () => {
 
   const cols = 1,
     rows = 1,
-    pages = 3
+    pages = 5
+
+  const autoScrollThreshold = 0.4
 
   const gridStreams = useMemo(
     () =>
@@ -220,19 +224,18 @@ export const Hue: React.FC = () => {
   const currentGrid = useDerivedValue(() =>
     getCurrentGrid({ gridStreams, current: currentStep.value }),
   )
-
   const targetGrid = useSharedValue(currentGrid.value)
 
   useAnimatedReaction(
     () => direction.value,
     (direction, _) => {
-      if (direction !== 0) {
-        targetGrid.value = getTargetGridAtStep({
-          gridStreams,
-          current: currentStep.value,
-          step: direction,
-        })
-      }
+      if (direction === 0) return
+
+      targetGrid.value = getTargetGridAtStep({
+        gridStreams,
+        current: currentStep.value,
+        step: direction === 0 ? 1 : direction,
+      })
     },
   )
 
@@ -281,7 +284,7 @@ export const Hue: React.FC = () => {
         target.forEach((vertex, i) => {
           vertex.color.value = interpolateColor(
             Math.abs(xInternal[0].value - target[0].x.value) / width,
-            [0.5, 0],
+            [autoScrollThreshold, 0],
             [leftAtColor[i].value, currentGrid.value[i].color],
           )
         })
@@ -294,7 +297,7 @@ export const Hue: React.FC = () => {
     (current, previous) => {
       if (current === false && previous === true) {
         if (isPanningRunning.value === true && direction.value !== 0) {
-          if (Math.abs(offset.value) > 0.5) {
+          if (Math.abs(offset.value) > autoScrollThreshold) {
             currentStep.value = currentStep.value + direction.value
           }
 
@@ -315,6 +318,13 @@ export const Hue: React.FC = () => {
     .onUpdate(event => {
       if (direction.value === 0) {
         direction.value = event.velocityX > 0 ? 1 : -1
+      }
+
+      if (
+        (currentStep.value === 0 && direction.value === 1) ||
+        (currentStep.value === -pages + 1 && direction.value === -1)
+      ) {
+        return
       }
 
       if (isPanningRunning.value == false) {
