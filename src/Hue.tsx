@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useMemo } from 'react'
 import {
   Canvas,
   Circle,
@@ -23,7 +23,7 @@ import {
 } from 'react-native-gesture-handler'
 import cdt2d from 'cdt2d'
 
-const colorStream = ['pink', 'orange', 'purple', 'green'].reverse()
+const colorStream = ['pink', 'orange', 'purple', 'green', 'aqua'].reverse()
 
 const animationConfigForward = { duration: 300 }
 const animationConfigBack = { duration: 300 }
@@ -179,7 +179,7 @@ const getTargetGridAtStep = ({
   'worklet'
   const updatedCurrent = current + step
 
-  const nextGrid = gridStreams.map((stream, index) => {
+  const nextGrid = gridStreams.map(stream => {
     const newPositionIndex = Math.max(
       0,
       Math.min(stream.length - 1, stream.length - 1 + updatedCurrent),
@@ -195,7 +195,7 @@ export const Hue: React.FC = () => {
 
   const cols = 1,
     rows = 1,
-    pages = 2
+    pages = 3
 
   const gridStreams = useMemo(
     () =>
@@ -210,26 +210,34 @@ export const Hue: React.FC = () => {
     [],
   )
 
-  const step = useSharedValue(0)
-
-  const currentGrid = useDerivedValue(() =>
-    getCurrentGrid({ gridStreams, current: step.value }),
-  )
-  const targetGrid = useDerivedValue(() =>
-    getTargetGridAtStep({
-      gridStreams,
-      current: step.value,
-      step: -1,
-    }),
-  )
-
+  const currentStep = useSharedValue(0)
+  const direction = useSharedValue(0)
   const offset = useSharedValue(0)
   const isPanningRunning = useSharedValue(true)
   const isMouseDownForPanning = useSharedValue(false)
-  const direction = useSharedValue(0)
+  const animationComleted = useSharedValue(0)
+
+  const currentGrid = useDerivedValue(() =>
+    getCurrentGrid({ gridStreams, current: currentStep.value }),
+  )
+
+  const targetGrid = useSharedValue(currentGrid.value)
+
+  useAnimatedReaction(
+    () => direction.value,
+    (direction, _) => {
+      if (direction !== 0) {
+        targetGrid.value = getTargetGridAtStep({
+          gridStreams,
+          current: currentStep.value,
+          step: direction,
+        })
+      }
+    },
+  )
+
   const xInternal = currentGrid.value.map(c => useSharedValue(c.x))
   const yInternal = currentGrid.value.map(c => useSharedValue(c.y))
-  const animationComleted = useSharedValue(0)
 
   const target = currentGrid.value.map((currentVertex, vertexIndex) => {
     return {
@@ -244,11 +252,13 @@ export const Hue: React.FC = () => {
   )
   useAnimatedReaction(
     () => offset.value,
-    (current, previous) => {
+    (current, _) => {
       target.forEach((vertex, i) => {
         vertex.x.value =
-          currentGrid.value[i].x -
-          (targetGrid.value[i].x - currentGrid.value[i].x) * offset.value
+          currentGrid.value[i].x +
+          direction.value *
+            (targetGrid.value[i].x - currentGrid.value[i].x) *
+            offset.value
         vertex.y.value = currentGrid.value[i].y
 
         if (current !== 0) {
@@ -285,7 +295,7 @@ export const Hue: React.FC = () => {
       if (current === false && previous === true) {
         if (isPanningRunning.value === true && direction.value !== 0) {
           if (Math.abs(offset.value) > 0.5) {
-            step.value = step.value + direction.value
+            currentStep.value = currentStep.value + direction.value
           }
 
           offset.value = 0
