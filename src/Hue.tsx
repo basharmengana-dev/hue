@@ -10,7 +10,6 @@ import { View, useWindowDimensions } from 'react-native'
 import {
   SharedValue,
   interpolateColor,
-  runOnJS,
   useAnimatedReaction,
   useDerivedValue,
   useSharedValue,
@@ -38,6 +37,7 @@ const HueBackground = ({
   colors,
   target,
   derivedVertices,
+  debug,
 }: {
   colors: SharedValue<string[]>
   target: {
@@ -51,6 +51,7 @@ const HueBackground = ({
       y: number
     }[]
   >
+  debug?: boolean
 }) => {
   const triangles = useMemo(
     () => cdt2d(target.map(({ x, y }) => [x.value, y.value])),
@@ -81,7 +82,11 @@ const HueBackground = ({
         strokeWidth={2}
         colors={colors}
       />
-      <Path path={path} strokeWidth={2} color="black" style="stroke" />
+      {debug ? (
+        <Path path={path} strokeWidth={2} color="black" style="stroke" />
+      ) : (
+        <></>
+      )}
     </>
   )
 }
@@ -220,7 +225,8 @@ export const Hue: React.FC = () => {
   const isPanningRunning = useSharedValue(true)
   const isMouseDownForPanning = useSharedValue(false)
   const animationCompleted = useSharedValue(0)
-  const newPageFlipped = useSharedValue(false)
+  const currentGridReady = useSharedValue(false)
+  const debug = true
 
   const currentGrid = useDerivedValue(() =>
     getCurrentGrid({ gridStreams, current: currentStep.value }),
@@ -253,7 +259,7 @@ export const Hue: React.FC = () => {
             c.color !== previous[i].color,
         )
       ) {
-        newPageFlipped.value = true
+        currentGridReady.value = true
       }
     },
   )
@@ -302,7 +308,7 @@ export const Hue: React.FC = () => {
       if (
         isMouseDownForPanning.value === false &&
         direction.value !== 0 &&
-        newPageFlipped.value === true
+        currentGridReady.value === true
       ) {
         target.forEach((vertex, i) => {
           vertex.color.value = interpolateColor(
@@ -371,6 +377,7 @@ export const Hue: React.FC = () => {
             if (i === 0) {
               //NOTE: Callback to keep track of animation completion
               animationCompleted.value = 0
+              currentGridReady.value = true
               x.value = withTiming(
                 currentGrid.value[i].x,
                 animationConfigBack,
@@ -431,7 +438,7 @@ export const Hue: React.FC = () => {
     () => animationCompleted.value,
     (current, previous) => {
       if (current === 1 && previous === 0) {
-        newPageFlipped.value = false
+        currentGridReady.value = false
         animationCompleted.value = 0
       }
     },
@@ -455,17 +462,22 @@ export const Hue: React.FC = () => {
               colors={colors}
               target={target}
               derivedVertices={derivedVertices}
+              debug={debug}
             />
-            {xInternal.map((x, i) => (
-              <Circle
-                key={i}
-                cx={x}
-                cy={yInternal[i]}
-                r={20}
-                color={target[i].color}>
-                <Paint color="black" style="stroke" strokeWidth={1} />
-              </Circle>
-            ))}
+            {debug ? (
+              xInternal.map((x, i) => (
+                <Circle
+                  key={i}
+                  cx={x}
+                  cy={yInternal[i]}
+                  r={20}
+                  color={target[i].color}>
+                  <Paint color="black" style="stroke" strokeWidth={1} />
+                </Circle>
+              ))
+            ) : (
+              <></>
+            )}
           </Canvas>
         </GestureDetector>
       </GestureHandlerRootView>
