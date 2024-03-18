@@ -196,7 +196,7 @@ export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
 
   const cols = 1,
-    rows = 1,
+    rows = 3,
     pages = 5
 
   const autoScrollThreshold = 0.4
@@ -219,7 +219,8 @@ export const Hue: React.FC = () => {
   const offset = useSharedValue(0)
   const isPanningRunning = useSharedValue(true)
   const isMouseDownForPanning = useSharedValue(false)
-  const animationComleted = useSharedValue(0)
+  const animationCompleted = useSharedValue(0)
+  const newPageFlipped = useSharedValue(false)
 
   const currentGrid = useDerivedValue(() =>
     getCurrentGrid({ gridStreams, current: currentStep.value }),
@@ -236,6 +237,24 @@ export const Hue: React.FC = () => {
         current: currentStep.value,
         step: direction === 0 ? 1 : direction,
       })
+    },
+  )
+
+  useAnimatedReaction(
+    () => currentGrid.value,
+    (current, previous) => {
+      if (!previous) return
+
+      if (
+        current.some(
+          (c, i) =>
+            c.x !== previous[i].x ||
+            c.y !== previous[i].y ||
+            c.color !== previous[i].color,
+        )
+      ) {
+        newPageFlipped.value = true
+      }
     },
   )
 
@@ -261,12 +280,12 @@ export const Hue: React.FC = () => {
           currentGrid.value[i].x +
           direction.value *
             (targetGrid.value[i].x - currentGrid.value[i].x) *
-            offset.value
+            current
         vertex.y.value = currentGrid.value[i].y
 
         if (current !== 0) {
           const color_ = interpolateColor(
-            Math.abs(offset.value),
+            Math.abs(current),
             [0, 1],
             [currentGrid.value[i].color, targetGrid.value[i].color],
           )
@@ -280,7 +299,11 @@ export const Hue: React.FC = () => {
   useAnimatedReaction(
     () => xInternal[0].value,
     () => {
-      if (isMouseDownForPanning.value === false && direction.value !== 0) {
+      if (
+        isMouseDownForPanning.value === false &&
+        direction.value !== 0 &&
+        newPageFlipped.value === true
+      ) {
         target.forEach((vertex, i) => {
           vertex.color.value = interpolateColor(
             Math.abs(xInternal[0].value - target[0].x.value) / width,
@@ -347,12 +370,12 @@ export const Hue: React.FC = () => {
           xInternal.forEach((x, i) => {
             if (i === 0) {
               //NOTE: Callback to keep track of animation completion
-              animationComleted.value = 0
+              animationCompleted.value = 0
               x.value = withTiming(
                 currentGrid.value[i].x,
                 animationConfigBack,
                 isFinished => {
-                  if (isFinished) animationComleted.value = 1
+                  if (isFinished) animationCompleted.value = 1
                 },
               )
             } else {
@@ -364,12 +387,12 @@ export const Hue: React.FC = () => {
         xInternal.forEach((x, i) => {
           if (i === 0) {
             //NOTE: Callback to keep track of animation completion
-            animationComleted.value = 0
+            animationCompleted.value = 0
             x.value = withTiming(
               target[i].x.value,
               animationConfigForward,
               isFinished => {
-                if (isFinished) animationComleted.value = 1
+                if (isFinished) animationCompleted.value = 1
               },
             )
           } else {
@@ -405,10 +428,11 @@ export const Hue: React.FC = () => {
   )
 
   useAnimatedReaction(
-    () => animationComleted.value,
+    () => animationCompleted.value,
     (current, previous) => {
       if (current === 1 && previous === 0) {
-        animationComleted.value = 0
+        newPageFlipped.value = false
+        animationCompleted.value = 0
       }
     },
   )
