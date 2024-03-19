@@ -30,8 +30,7 @@ const colorStream = [
   '#D8BFD8',
 ].reverse()
 
-const animationConfigForward = { duration: 300 }
-const animationConfigBack = { duration: 300 }
+const animationConfig = { duration: 300 }
 
 const HueBackground = ({
   colors,
@@ -204,8 +203,6 @@ export const Hue: React.FC = () => {
     rows = 3,
     pages = 5
 
-  const autoScrollThreshold = 0.4
-
   const gridStreams = useMemo(
     () =>
       createStreamedGrid({
@@ -225,8 +222,10 @@ export const Hue: React.FC = () => {
   const isPanningRunning = useSharedValue(true)
   const isMouseDownForPanning = useSharedValue(false)
   const animationCompleted = useSharedValue(0)
-  const currentGridReady = useSharedValue(false)
-  const debug = true
+  const currentGridAtTargetReady = useSharedValue(false)
+
+  const autoScrollThreshold = 0.4
+  const debug = false
 
   const currentGrid = useDerivedValue(() =>
     getCurrentGrid({ gridStreams, current: currentStep.value }),
@@ -250,7 +249,6 @@ export const Hue: React.FC = () => {
     () => currentGrid.value,
     (current, previous) => {
       if (!previous) return
-
       if (
         current.some(
           (c, i) =>
@@ -259,7 +257,7 @@ export const Hue: React.FC = () => {
             c.color !== previous[i].color,
         )
       ) {
-        currentGridReady.value = true
+        currentGridAtTargetReady.value = true
       }
     },
   )
@@ -308,7 +306,7 @@ export const Hue: React.FC = () => {
       if (
         isMouseDownForPanning.value === false &&
         direction.value !== 0 &&
-        currentGridReady.value === true
+        currentGridAtTargetReady.value === true
       ) {
         target.forEach((vertex, i) => {
           vertex.color.value = interpolateColor(
@@ -328,6 +326,8 @@ export const Hue: React.FC = () => {
         if (isPanningRunning.value === true && direction.value !== 0) {
           if (Math.abs(offset.value) > autoScrollThreshold) {
             currentStep.value = currentStep.value + direction.value
+          } else {
+            currentGridAtTargetReady.value = true
           }
 
           offset.value = 0
@@ -377,16 +377,15 @@ export const Hue: React.FC = () => {
             if (i === 0) {
               //NOTE: Callback to keep track of animation completion
               animationCompleted.value = 0
-              currentGridReady.value = true
               x.value = withTiming(
                 currentGrid.value[i].x,
-                animationConfigBack,
+                animationConfig,
                 isFinished => {
                   if (isFinished) animationCompleted.value = 1
                 },
               )
             } else {
-              x.value = withTiming(currentGrid.value[i].x, animationConfigBack)
+              x.value = withTiming(currentGrid.value[i].x, animationConfig)
             }
           })
         }
@@ -397,13 +396,13 @@ export const Hue: React.FC = () => {
             animationCompleted.value = 0
             x.value = withTiming(
               target[i].x.value,
-              animationConfigForward,
+              animationConfig,
               isFinished => {
                 if (isFinished) animationCompleted.value = 1
               },
             )
           } else {
-            x.value = withTiming(target[i].x.value, animationConfigForward)
+            x.value = withTiming(target[i].x.value, animationConfig)
           }
         })
       }
@@ -419,16 +418,12 @@ export const Hue: React.FC = () => {
         } else {
           yInternal.forEach(
             (y, i) =>
-              (y.value = withTiming(
-                currentGrid.value[i].y,
-                animationConfigBack,
-              )),
+              (y.value = withTiming(currentGrid.value[i].y, animationConfig)),
           )
         }
       } else {
         yInternal.forEach(
-          (y, i) =>
-            (y.value = withTiming(target[i].y.value, animationConfigForward)),
+          (y, i) => (y.value = withTiming(target[i].y.value, animationConfig)),
         )
       }
     },
@@ -438,7 +433,7 @@ export const Hue: React.FC = () => {
     () => animationCompleted.value,
     (current, previous) => {
       if (current === 1 && previous === 0) {
-        currentGridReady.value = false
+        currentGridAtTargetReady.value = false
         animationCompleted.value = 0
       }
     },
