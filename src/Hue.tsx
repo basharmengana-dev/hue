@@ -22,14 +22,6 @@ import {
 } from 'react-native-gesture-handler'
 import cdt2d from 'cdt2d'
 
-const colorStream = [
-  '#FFB6C1',
-  '#00FFFF',
-  '#90EE90',
-  '#FFDAB9',
-  '#D8BFD8',
-].reverse()
-
 const animationConfig = { duration: 300 }
 
 const HueBackground = ({
@@ -113,18 +105,25 @@ const createGrid = ({
   const totalRows = rows + 1
 
   const grid = Array.from({ length: totalColumns }, (_, col) =>
-    Array.from(
-      { length: totalRows },
-      (_, row) =>
-        ({
-          x: col * hSize,
-          y: row * vSize,
-        } as Vertex),
-    ),
+    Array.from({ length: totalRows }, (_, row) => {
+      const p = {
+        x: col * hSize,
+        y: row * vSize,
+      } as Vertex
+      return p
+    }),
   ).flat()
 
   return { grid, hSize, vSize, totalColumns }
 }
+
+const colorStream = [
+  '#FFB6C1',
+  '#00FFFF',
+  '#90EE90',
+  '#FFDAB9',
+  '#D8BFD8',
+].reverse()
 
 const createStreamedGrid = ({
   rows,
@@ -153,13 +152,19 @@ const createStreamedGrid = ({
     height,
   })
 
-  return baseGrid.map(({ x, y }) =>
-    Array.from({ length: totalColumns - 1 }, (_, i) => ({
-      x: x + hSize * (i + 2 - totalColumns),
-      y: y,
-      color: colorStream[i],
-    })),
-  )
+  return baseGrid.slice(4, 5).map(({ x, y }, i) => {
+    // console.log('Stream for: ', 'x: ', x, 'y: ', y)
+    return Array.from({ length: totalColumns - 1 }, (_, i) => {
+      const p = {
+        x: x + hSize * (i + 2 - totalColumns),
+        y: y,
+        color: colorStream[0],
+      }
+      // console.log(p.x, ', ', p.y)
+
+      return p
+    })
+  })
 }
 
 const getCurrentGrid = ({
@@ -199,9 +204,9 @@ const getTargetGridAtStep = ({
 export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
 
-  const cols = 1,
-    rows = 3,
-    pages = 5
+  const cols = 2,
+    rows = 1,
+    pages = 3
 
   const gridStreams = useMemo(
     () =>
@@ -216,6 +221,12 @@ export const Hue: React.FC = () => {
     [],
   )
 
+  // const totalPoints = gridStreams.length * gridStreams[0].length
+  // console.log('Total points: ', totalPoints)
+  // console.log('points per page', (cols + 1) * (rows + 1))
+  // console.log('total points', (cols + 1) * (rows + 1) * (pages + 1))
+  // console.log('cols', cols, 'rows', rows, 'pages', pages)
+
   const currentStep = useSharedValue(0)
   const direction = useSharedValue(0)
   const offset = useSharedValue(0)
@@ -225,7 +236,7 @@ export const Hue: React.FC = () => {
   const currentGridAtTargetReady = useSharedValue(false)
 
   const autoScrollThreshold = 0.4
-  const debug = false
+  const debug = true
 
   const currentGrid = useDerivedValue(() =>
     getCurrentGrid({ gridStreams, current: currentStep.value }),
@@ -276,16 +287,84 @@ export const Hue: React.FC = () => {
   const leftAtColor = currentGrid.value.map(vertex =>
     useSharedValue(vertex.color),
   )
+  function calculateDynamicXPositionWithDirection(
+    t: number,
+    points: number[],
+  ): number {
+    'worklet'
+    // Ensure the points array has exactly three points
+    if (points.length !== 3) {
+      return points[0]
+    }
+
+    // Extract the start, mid, and end positions from the points array
+    // When t is negative, reverse the points order to simulate rolling back
+    const [startPosition, midPosition, endPosition] =
+      t <= 0 ? points : [...points].reverse()
+
+    // Use the absolute value of t for calculation
+    const absT = Math.abs(t)
+
+    // Calculate the x position based on the progress value t
+    let xPosition: number
+
+    if (absT >= 0 && absT <= 0.5) {
+      // Interpolate between startPosition and midPosition
+      xPosition = startPosition + (midPosition - startPosition) * (absT / 0.5)
+    } else if (absT > 0.5 && absT <= 1) {
+      // Interpolate between midPosition and endPosition
+      xPosition =
+        midPosition + (endPosition - midPosition) * ((absT - 0.5) / 0.5)
+    } else {
+      // Out of bounds, return the start or end position as a fallback
+      xPosition = absT <= 0 ? startPosition : endPosition
+    }
+
+    return xPosition
+  }
+
+  const findMoveToClosestT = (x: number, points: number[]): number => {
+    'worklet'
+    if (x >= points[0] + (points[2] - points[0]) * 0.4) {
+      return currentStep.value
+    } else {
+      return direction.value * 2
+    }
+  }
+
+  const moveToClosestTValue = useSharedValue(currentStep.value)
   useAnimatedReaction(
     () => offset.value,
     (current, _) => {
       target.forEach((vertex, i) => {
-        vertex.x.value =
-          currentGrid.value[i].x +
-          direction.value *
-            (targetGrid.value[i].x - currentGrid.value[i].x) *
-            current
+        // vertex.x.value =
+        //   currentGrid.value[i].x +
+        //   direction.value *
+        //     (targetGrid.value[i].x - currentGrid.value[i].x) *
+        //     current
+
+        let startSlice = 0
+        let endSlice = 0
+        if (direction.value === -1) {
+          startSlice = gridStreams[i].length + currentStep.value - 3
+          endSlice = gridStreams[i].length + currentStep.value
+        } else if (direction.value === 1) {
+          startSlice = gridStreams[i].length + currentStep.value - 1
+          endSlice = gridStreams[i].length + currentStep.value + 2
+        }
+
+        console.log('startSlice: ', startSlice, 'endSlice: ', endSlice)
+
+        const last3 = gridStreams[i]
+          .slice(startSlice, endSlice)
+          .map(p => p.x)
+          .reverse()
+        console.log('last3: ', last3)
+        vertex.x.value = calculateDynamicXPositionWithDirection(current, last3)
         vertex.y.value = currentGrid.value[i].y
+
+        moveToClosestTValue.value = findMoveToClosestT(vertex.x.value, last3)
+        // console.log('moveToCloestTValue: ', moveToClosestTValue.value)
 
         if (current !== 0) {
           const color_ = interpolateColor(
@@ -297,6 +376,34 @@ export const Hue: React.FC = () => {
           leftAtColor[i].value = color_
         }
       })
+    },
+  )
+
+  // useAnimatedReaction(
+  //   () => currentStep.value,
+  //   current => {
+  //     console.log('Current step: ', current)
+  //   },
+  // )
+
+  useAnimatedReaction(
+    () => isMouseDownForPanning.value,
+    (current, previous) => {
+      if (current === false && previous === true) {
+        if (isPanningRunning.value === true && direction.value !== 0) {
+          if (Math.abs(offset.value) > autoScrollThreshold) {
+            console.log('moveToClosestTValue: ', moveToClosestTValue.value)
+            // console.log(' direction: ', direction.value)
+            currentStep.value = currentStep.value + moveToClosestTValue.value
+            moveToClosestTValue.value = 0
+          } else {
+            currentGridAtTargetReady.value = true
+          }
+
+          offset.value = 0
+          isPanningRunning.value = false
+        }
+      }
     },
   )
 
@@ -315,24 +422,6 @@ export const Hue: React.FC = () => {
             [leftAtColor[i].value, currentGrid.value[i].color],
           )
         })
-      }
-    },
-  )
-
-  useAnimatedReaction(
-    () => isMouseDownForPanning.value,
-    (current, previous) => {
-      if (current === false && previous === true) {
-        if (isPanningRunning.value === true && direction.value !== 0) {
-          if (Math.abs(offset.value) > autoScrollThreshold) {
-            currentStep.value = currentStep.value + direction.value
-          } else {
-            currentGridAtTargetReady.value = true
-          }
-
-          offset.value = 0
-          isPanningRunning.value = false
-        }
       }
     },
   )
@@ -359,6 +448,7 @@ export const Hue: React.FC = () => {
       if (isPanningRunning.value == false) {
         return
       } else {
+        // console.log(event.translationX, width)
         offset.value = (event.translationX / width) * 1
       }
     })
