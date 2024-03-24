@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   Canvas,
   Circle,
@@ -6,10 +6,11 @@ import {
   Path,
   Vertices,
 } from '@shopify/react-native-skia'
-import { View, useWindowDimensions } from 'react-native'
+import { Text, View, useWindowDimensions } from 'react-native'
 import {
   SharedValue,
   interpolateColor,
+  runOnJS,
   useAnimatedReaction,
   useDerivedValue,
   useSharedValue,
@@ -117,7 +118,7 @@ const createGrid = ({
     }),
   ).flat()
 
-  return { grid, hSize, vSize, totalColumns }
+  return { grid, hSize, vSize, totalColumns, nonSharedColsPerPage: cols }
 }
 
 const colorStream = [
@@ -147,6 +148,7 @@ const createStreamedGrid = ({
     grid: baseGrid,
     hSize,
     totalColumns,
+    nonSharedColsPerPage,
   } = createGrid({
     rows,
     cols,
@@ -156,7 +158,7 @@ const createStreamedGrid = ({
   })
 
   // .slice(4, 5)
-  return baseGrid.map(({ x, y }, i) => {
+  const gridStreams = baseGrid.map(({ x, y }, i) => {
     return Array.from({ length: totalColumns - 1 }, (_, i) => {
       const p = {
         x: x + hSize * (i + 2 - totalColumns),
@@ -167,6 +169,8 @@ const createStreamedGrid = ({
       return p
     })
   })
+
+  return { gridStreams, nonSharedColsPerPage }
 }
 
 const getCurrentGrid = ({
@@ -180,37 +184,14 @@ const getCurrentGrid = ({
   return gridStreams.map(stream => stream[stream.length - 1 + current])
 }
 
-const getTargetGridAtStep = ({
-  gridStreams,
-  current,
-  step,
-}: {
-  gridStreams: ColoredVertex[][]
-  current: number
-  step: number
-}) => {
-  'worklet'
-  const updatedCurrent = current + step
-
-  const nextGrid = gridStreams.map(stream => {
-    const newPositionIndex = Math.max(
-      0,
-      Math.min(stream.length - 1, stream.length - 1 + updatedCurrent),
-    )
-    return stream[newPositionIndex]
-  })
-
-  return nextGrid
-}
-
 export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
 
   const cols = 2,
     rows = 1,
-    pages = 2
+    pages = 4
 
-  const gridStreams = useMemo(
+  const { gridStreams, nonSharedColsPerPage } = useMemo(
     () =>
       createStreamedGrid({
         rows,
@@ -220,7 +201,7 @@ export const Hue: React.FC = () => {
         height,
         colorStream,
       }),
-    [cols, rows, pages],
+    [],
   )
   // console.log(gridStreams.filter((_, i) => i === 4).map(p => p.map(p => p.x)))
 
@@ -232,22 +213,11 @@ export const Hue: React.FC = () => {
   const animationCompleted = useSharedValue(0)
   const currentGridAtTargetReady = useSharedValue(false)
 
+  const currentPage = useSharedValue(0)
+  const [currentPageDisplay, setCurrentPageDispay] = useState(0)
+
   const currentGrid = useDerivedValue(() =>
     getCurrentGrid({ gridStreams, current: currentStep.value }),
-  )
-  const targetGrid = useSharedValue(currentGrid.value)
-
-  useAnimatedReaction(
-    () => direction.value,
-    (direction, _) => {
-      if (direction === 0) return
-
-      targetGrid.value = getTargetGridAtStep({
-        gridStreams,
-        current: currentStep.value,
-        step: direction === 0 ? 1 : direction,
-      })
-    },
   )
 
   useAnimatedReaction(
@@ -362,15 +332,15 @@ export const Hue: React.FC = () => {
           nextSteam,
         )
 
-        if (current !== 0) {
-          const color_ = interpolateColor(
-            Math.abs(current),
-            [0, 1],
-            [currentGrid.value[i].color, targetGrid.value[i].color],
-          )
-          vertex.color.value = color_
-          leftAtColor[i].value = color_
-        }
+        // if (current !== 0) {
+        //   const color_ = interpolateColor(
+        //     Math.abs(current),
+        //     [0, 1],
+        //     [currentGrid.value[i].color, targetGrid.value[i].color],
+        //   )
+        //   vertex.color.value = color_
+        //   leftAtColor[i].value = color_
+        // }
       })
     },
   )
@@ -413,6 +383,14 @@ export const Hue: React.FC = () => {
     },
   )
 
+  useAnimatedReaction(
+    () => currentStep.value,
+    current => {
+      currentPage.value = -current / nonSharedColsPerPage + 1
+      runOnJS(setCurrentPageDispay)(currentPage.value)
+    },
+  )
+
   const pan = Gesture.Pan()
     .onStart(() => {
       isPanningRunning.value = true
@@ -425,11 +403,10 @@ export const Hue: React.FC = () => {
         direction.value = event.velocityX > 0 ? 1 : -1
       }
 
-      if (currentStep.value === 0 && direction.value === 1) {
-        return
-      }
-
-      if (currentStep.value === -pages && direction.value === -1) {
+      if (
+        (currentStep.value === 0 && direction.value === 1) ||
+        (currentPage.value === pages && direction.value === -1)
+      ) {
         return
       }
 
@@ -553,6 +530,18 @@ export const Hue: React.FC = () => {
           </Canvas>
         </GestureDetector>
       </GestureHandlerRootView>
+
+      <View
+        style={{
+          position: 'absolute',
+          top: height - 20,
+          left: 0,
+          width: width,
+          height: 50,
+          backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        }}>
+        <Text>{`${currentPageDisplay} / ${pages}`}</Text>
+      </View>
     </View>
   )
 }
