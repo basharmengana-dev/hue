@@ -24,6 +24,9 @@ import cdt2d from 'cdt2d'
 
 const animationConfig = { duration: 300 }
 
+const autoScrollThreshold = 0.4
+const debug = true
+
 const HueBackground = ({
   colors,
   target,
@@ -205,7 +208,7 @@ export const Hue: React.FC = () => {
 
   const cols = 2,
     rows = 1,
-    pages = 3
+    pages = 2
 
   const gridStreams = useMemo(
     () =>
@@ -217,8 +220,9 @@ export const Hue: React.FC = () => {
         height,
         colorStream,
       }),
-    [],
+    [cols, rows, pages],
   )
+  // console.log(gridStreams.filter((_, i) => i === 4).map(p => p.map(p => p.x)))
 
   const currentStep = useSharedValue(0)
   const direction = useSharedValue(0)
@@ -227,9 +231,6 @@ export const Hue: React.FC = () => {
   const isMouseDownForPanning = useSharedValue(false)
   const animationCompleted = useSharedValue(0)
   const currentGridAtTargetReady = useSharedValue(false)
-
-  const autoScrollThreshold = 0.4
-  const debug = true
 
   const currentGrid = useDerivedValue(() =>
     getCurrentGrid({ gridStreams, current: currentStep.value }),
@@ -345,15 +346,21 @@ export const Hue: React.FC = () => {
           endSlice = gridStreams[i].length + currentStep.value + 2
         }
 
-        const last3 = gridStreams[i]
+        const nextSteam = gridStreams[i]
           .slice(startSlice, endSlice)
           .map(p => p.x)
           .reverse()
 
-        vertex.x.value = calculateDynamicXPositionWithDirection(current, last3)
+        vertex.x.value = calculateDynamicXPositionWithDirection(
+          current,
+          nextSteam,
+        )
         vertex.y.value = currentGrid.value[i].y
 
-        moveToClosestTValue.value = findMoveToClosestT(vertex.x.value, last3)
+        moveToClosestTValue.value = findMoveToClosestT(
+          vertex.x.value,
+          nextSteam,
+        )
 
         if (current !== 0) {
           const color_ = interpolateColor(
@@ -418,10 +425,11 @@ export const Hue: React.FC = () => {
         direction.value = event.velocityX > 0 ? 1 : -1
       }
 
-      if (
-        (currentStep.value === 0 && direction.value === 1) ||
-        (currentStep.value === -pages + 1 && direction.value === -1)
-      ) {
+      if (currentStep.value === 0 && direction.value === 1) {
+        return
+      }
+
+      if (currentStep.value === -pages && direction.value === -1) {
         return
       }
 
