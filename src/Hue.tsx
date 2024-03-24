@@ -23,8 +23,6 @@ import {
 } from 'react-native-gesture-handler'
 import cdt2d from 'cdt2d'
 
-const animationConfig = { duration: 300 }
-
 const autoScrollThreshold = 0.4
 const debug = true
 
@@ -187,9 +185,11 @@ const getCurrentGrid = ({
 export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
 
+  const animationDuration = useSharedValue(300)
+
   const cols = 2,
     rows = 1,
-    pages = 4
+    pages = 2
 
   const { gridStreams, nonSharedColsPerPage } = useMemo(
     () =>
@@ -203,7 +203,7 @@ export const Hue: React.FC = () => {
       }),
     [],
   )
-  // console.log(gridStreams.filter((_, i) => i === 4).map(p => p.map(p => p.x)))
+  // console.log(gridStreams.filter((_, i) => i === 0).map(p => p.map(p => p.x)))
 
   const currentStep = useSharedValue(0)
   const direction = useSharedValue(0)
@@ -213,12 +213,17 @@ export const Hue: React.FC = () => {
   const animationCompleted = useSharedValue(0)
   const currentGridAtTargetReady = useSharedValue(false)
 
-  const currentPage = useSharedValue(0)
-  const [currentPageDisplay, setCurrentPageDispay] = useState(0)
+  const currentPage = useSharedValue(1)
+  const [currentPageDisplay, setCurrentPageDispay] = useState(1)
 
   const currentGrid = useDerivedValue(() =>
     getCurrentGrid({ gridStreams, current: currentStep.value }),
   )
+
+  const getAnimationConfig = () => {
+    'worklet'
+    return { duration: animationDuration.value }
+  }
 
   useAnimatedReaction(
     () => currentGrid.value,
@@ -308,6 +313,7 @@ export const Hue: React.FC = () => {
       target.forEach((vertex, i) => {
         let startSlice = 0
         let endSlice = 0
+
         if (direction.value === -1) {
           startSlice = gridStreams[i].length + currentStep.value - 3
           endSlice = gridStreams[i].length + currentStep.value
@@ -385,9 +391,32 @@ export const Hue: React.FC = () => {
 
   useAnimatedReaction(
     () => currentStep.value,
-    current => {
-      currentPage.value = -current / nonSharedColsPerPage + 1
-      runOnJS(setCurrentPageDispay)(currentPage.value)
+    (current, previous) => {
+      if (previous !== null) {
+        currentPage.value = -current / nonSharedColsPerPage + 1
+        runOnJS(setCurrentPageDispay)(currentPage.value)
+      }
+    },
+  )
+
+  const midWaySwitchDirection = useSharedValue(false)
+  const _direction = useSharedValue(0)
+
+  useAnimatedReaction(
+    () => _direction.value,
+    (current, previous) => {
+      if (current === 0 || previous === null) {
+        midWaySwitchDirection.value = false
+      }
+
+      if (
+        (previous === 1 && current === -1) ||
+        (previous === -1 && current === 1)
+      ) {
+        midWaySwitchDirection.value = true
+      } else {
+        midWaySwitchDirection.value = false
+      }
     },
   )
 
@@ -397,14 +426,35 @@ export const Hue: React.FC = () => {
       isMouseDownForPanning.value = true
       offset.value = 0
       direction.value = 0
+      _direction.value = 0
     })
     .onUpdate(event => {
+      _direction.value = event.velocityX > 0 ? 1 : -1
       if (direction.value === 0) {
         direction.value = event.velocityX > 0 ? 1 : -1
       }
 
+      // NOTE: Prevent panning when at the start or end of pagination and user is switching direction
       if (
+        (midWaySwitchDirection.value === true &&
+          _direction.value === 1 &&
+          currentStep.value === 0 &&
+          event.absoluteX >= width - 70) ||
+        (midWaySwitchDirection.value === true &&
+          currentPage.value === pages &&
+          _direction.value === -1 &&
+          event.absoluteX <= 70)
+      ) {
+        animationDuration.value = 150
+        isMouseDownForPanning.value = false
+        return
+      }
+
+      // NOTE: Prevent panning when at the start or end of pagination when starting with no movement
+      if (
+        // NOTE: Start of pagination
         (currentStep.value === 0 && direction.value === 1) ||
+        // NOTE: End of pagination
         (currentPage.value === pages && direction.value === -1)
       ) {
         return
@@ -433,13 +483,13 @@ export const Hue: React.FC = () => {
               animationCompleted.value = 0
               x.value = withTiming(
                 currentGrid.value[i].x,
-                animationConfig,
+                getAnimationConfig(),
                 isFinished => {
                   if (isFinished) animationCompleted.value = 1
                 },
               )
             } else {
-              x.value = withTiming(currentGrid.value[i].x, animationConfig)
+              x.value = withTiming(currentGrid.value[i].x, getAnimationConfig())
             }
           })
         }
@@ -450,13 +500,13 @@ export const Hue: React.FC = () => {
             animationCompleted.value = 0
             x.value = withTiming(
               target[i].x.value,
-              animationConfig,
+              getAnimationConfig(),
               isFinished => {
                 if (isFinished) animationCompleted.value = 1
               },
             )
           } else {
-            x.value = withTiming(target[i].x.value, animationConfig)
+            x.value = withTiming(target[i].x.value, getAnimationConfig())
           }
         })
       }
@@ -472,12 +522,16 @@ export const Hue: React.FC = () => {
         } else {
           yInternal.forEach(
             (y, i) =>
-              (y.value = withTiming(currentGrid.value[i].y, animationConfig)),
+              (y.value = withTiming(
+                currentGrid.value[i].y,
+                getAnimationConfig(),
+              )),
           )
         }
       } else {
         yInternal.forEach(
-          (y, i) => (y.value = withTiming(target[i].y.value, animationConfig)),
+          (y, i) =>
+            (y.value = withTiming(target[i].y.value, getAnimationConfig())),
         )
       }
     },
