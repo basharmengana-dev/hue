@@ -23,9 +23,6 @@ import {
 } from 'react-native-gesture-handler'
 import cdt2d from 'cdt2d'
 
-const autoScrollThreshold = 0.4
-const debug = true
-
 const HueBackground = ({
   colors,
   target,
@@ -187,9 +184,12 @@ export const Hue: React.FC = () => {
 
   const animationDuration = useSharedValue(300)
 
+  const autoScrollThreshold = 0.4
+  const debug = true
+
   const cols = 2,
     rows = 1,
-    pages = 2
+    pages = 3
 
   const { gridStreams, nonSharedColsPerPage } = useMemo(
     () =>
@@ -212,6 +212,9 @@ export const Hue: React.FC = () => {
   const isMouseDownForPanning = useSharedValue(false)
   const animationCompleted = useSharedValue(0)
   const currentGridAtTargetReady = useSharedValue(false)
+  const midWaySwitchDirection = useSharedValue(false)
+  const _direction = useSharedValue(0)
+  const moveToClosestTValue = useSharedValue(currentStep.value)
 
   const currentPage = useSharedValue(1)
   const [currentPageDisplay, setCurrentPageDispay] = useState(1)
@@ -290,14 +293,14 @@ export const Hue: React.FC = () => {
     let closestT = currentStep.value
 
     if (direction.value === -1) {
-      if (x >= points[0] + (points[2] - points[0]) * 0.4) {
+      if (x >= points[0] + (points[2] - points[0]) * autoScrollThreshold) {
         closestT = currentStep.value
       } else {
-        closestT = direction.value * 2
+        closestT = -2
       }
     } else if (direction.value === 1) {
-      if (x <= points[0] - (points[0] - points[2]) * 0.4) {
-        closestT = direction.value * 2
+      if (x <= points[0] + (points[0] - points[2]) * autoScrollThreshold) {
+        closestT = 2
       } else {
         closestT = currentStep.value
       }
@@ -306,7 +309,6 @@ export const Hue: React.FC = () => {
     return closestT
   }
 
-  const moveToClosestTValue = useSharedValue(currentStep.value)
   useAnimatedReaction(
     () => offset.value,
     (current, _) => {
@@ -333,11 +335,6 @@ export const Hue: React.FC = () => {
         )
         vertex.y.value = currentGrid.value[i].y
 
-        moveToClosestTValue.value = findMoveToClosestT(
-          vertex.x.value,
-          nextSteam,
-        )
-
         // if (current !== 0) {
         //   const color_ = interpolateColor(
         //     Math.abs(current),
@@ -348,6 +345,29 @@ export const Hue: React.FC = () => {
         //   leftAtColor[i].value = color_
         // }
       })
+    },
+  )
+
+  useAnimatedReaction(
+    () => xInternal[0].value,
+    current => {
+      let startSlice = 0
+      let endSlice = 0
+
+      if (direction.value === -1) {
+        startSlice = gridStreams[0].length + currentStep.value - 3
+        endSlice = gridStreams[0].length + currentStep.value
+      } else if (direction.value === 1) {
+        startSlice = gridStreams[0].length + currentStep.value - 1
+        endSlice = gridStreams[0].length + currentStep.value + 2
+      }
+
+      const nextSteam = gridStreams[0]
+        .slice(startSlice, endSlice)
+        .map(p => p.x)
+        .reverse()
+
+      moveToClosestTValue.value = findMoveToClosestT(current, nextSteam)
     },
   )
 
@@ -399,9 +419,6 @@ export const Hue: React.FC = () => {
     },
   )
 
-  const midWaySwitchDirection = useSharedValue(false)
-  const _direction = useSharedValue(0)
-
   useAnimatedReaction(
     () => _direction.value,
     (current, previous) => {
@@ -430,6 +447,7 @@ export const Hue: React.FC = () => {
     })
     .onUpdate(event => {
       _direction.value = event.velocityX > 0 ? 1 : -1
+
       if (direction.value === 0) {
         direction.value = event.velocityX > 0 ? 1 : -1
       }
@@ -443,9 +461,10 @@ export const Hue: React.FC = () => {
         (midWaySwitchDirection.value === true &&
           currentPage.value === pages &&
           _direction.value === -1 &&
+          // FIX: console this threshold is wrong
           event.absoluteX <= 70)
       ) {
-        animationDuration.value = 150
+        animationDuration.value = 1000
         isMouseDownForPanning.value = false
         return
       }
@@ -463,7 +482,7 @@ export const Hue: React.FC = () => {
       if (isPanningRunning.value == false) {
         return
       } else {
-        offset.value = (event.translationX / width) * 1
+        offset.value = event.translationX / width
       }
     })
     .onEnd(() => {
