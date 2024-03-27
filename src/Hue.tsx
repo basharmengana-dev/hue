@@ -182,10 +182,10 @@ const getCurrentGrid = ({
 export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
 
-  const autoScrollThreshold = 0.4
+  const autoScrollThreshold = 0.3
   const debug = true
 
-  const cols = 2,
+  const cols = 3,
     rows = 1,
     pages = 5
 
@@ -258,10 +258,7 @@ export const Hue: React.FC = () => {
   const leftAtColor = currentGrid.value.map(vertex =>
     useSharedValue(vertex.color),
   )
-  function calculateDynamicXPositionWithDirection(
-    t: number,
-    points: number[],
-  ): number {
+  function interpolate3(t: number, points: number[]): number {
     'worklet'
 
     if (points.length !== 3) {
@@ -287,25 +284,57 @@ export const Hue: React.FC = () => {
     return xPosition
   }
 
-  const findMoveToClosestT = (x: number, points: number[]): number => {
+  function interpolate4(t: number, points: number[]): number {
     'worklet'
-    let closestT = currentStep.value
-
-    if (direction.value === -1) {
-      if (x >= points[0] + (points[2] - points[0]) * autoScrollThreshold) {
-        closestT = currentStep.value
-      } else {
-        closestT = -2
-      }
-    } else if (direction.value === 1) {
-      if (x <= points[0] + (points[0] - points[2]) * autoScrollThreshold) {
-        closestT = 2
-      } else {
-        closestT = currentStep.value
-      }
+    if (points.length !== 4) {
+      return points[0]
     }
 
-    return closestT
+    const [firstPosition, secondPosition, thirdPosition, fourthPosition] =
+      t <= 0 ? points : [...points].reverse()
+
+    const absT = Math.abs(t)
+    let xPosition: number
+
+    if (absT > 0 && absT < 1 / 3) {
+      xPosition =
+        firstPosition + (secondPosition - firstPosition) * (absT / (1 / 3))
+    } else if (absT >= 1 / 3 && absT < 2 / 3) {
+      xPosition =
+        secondPosition +
+        (thirdPosition - secondPosition) * ((absT - 1 / 3) / (1 / 3))
+    } else if (absT >= 2 / 3 && absT < 1) {
+      xPosition =
+        thirdPosition +
+        (fourthPosition - thirdPosition) * ((absT - 2 / 3) / (1 / 3))
+    } else {
+      xPosition = direction.value < 0 ? firstPosition : fourthPosition
+    }
+
+    return xPosition
+  }
+
+  const evaluateTranslationBasedOnThreshold = (
+    x: number,
+    points: number[],
+  ): number => {
+    'worklet'
+    let translate = currentStep.value
+
+    if (direction.value === -1) {
+      if (x >= points[0] + (points[cols] - points[0]) * autoScrollThreshold) {
+        translate = currentStep.value
+      } else {
+        translate = -cols
+      }
+    } else if (direction.value === 1) {
+      if (x <= points[0] + (points[0] - points[cols]) * autoScrollThreshold) {
+        translate = cols
+      } else {
+        translate = currentStep.value
+      }
+    }
+    return translate
   }
 
   useAnimatedReaction(
@@ -316,11 +345,11 @@ export const Hue: React.FC = () => {
         let endSlice = 0
 
         if (direction.value === -1) {
-          startSlice = gridStreams[i].length + currentStep.value - 3
+          startSlice = gridStreams[i].length + currentStep.value - (cols + 1)
           endSlice = gridStreams[i].length + currentStep.value
         } else if (direction.value === 1) {
           startSlice = gridStreams[i].length + currentStep.value - 1
-          endSlice = gridStreams[i].length + currentStep.value + 2
+          endSlice = gridStreams[i].length + currentStep.value + cols
         }
 
         const nextSteam = gridStreams[i]
@@ -328,10 +357,7 @@ export const Hue: React.FC = () => {
           .map(p => p.x)
           .reverse()
 
-        vertex.x.value = calculateDynamicXPositionWithDirection(
-          current,
-          nextSteam,
-        )
+        vertex.x.value = interpolate4(current, nextSteam)
         vertex.y.value = currentGrid.value[i].y
 
         // if (current !== 0) {
@@ -354,11 +380,11 @@ export const Hue: React.FC = () => {
       let endSlice = 0
 
       if (direction.value === -1) {
-        startSlice = gridStreams[0].length + currentStep.value - 3
+        startSlice = gridStreams[0].length + currentStep.value - (cols + 1)
         endSlice = gridStreams[0].length + currentStep.value
       } else if (direction.value === 1) {
         startSlice = gridStreams[0].length + currentStep.value - 1
-        endSlice = gridStreams[0].length + currentStep.value + 2
+        endSlice = gridStreams[0].length + currentStep.value + cols
       }
 
       const nextSteam = gridStreams[0]
@@ -366,7 +392,10 @@ export const Hue: React.FC = () => {
         .map(p => p.x)
         .reverse()
 
-      moveToClosestTValue.value = findMoveToClosestT(current, nextSteam)
+      moveToClosestTValue.value = evaluateTranslationBasedOnThreshold(
+        current,
+        nextSteam,
+      )
     },
   )
 
@@ -380,7 +409,6 @@ export const Hue: React.FC = () => {
           } else {
             currentGridAtTargetReady.value = true
           }
-
           offset.value = 0
           isPanningRunning.value = false
           moveToClosestTValue.value = 0
@@ -461,7 +489,7 @@ export const Hue: React.FC = () => {
           currentPage.value === pages &&
           _direction.value === -1)
       ) {
-        animationDuration.value = 150
+        animationDuration.value = 200
         isMouseDownForPanning.value = false
         return
       }
