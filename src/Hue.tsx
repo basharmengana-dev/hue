@@ -182,14 +182,12 @@ const getCurrentGrid = ({
 export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
 
-  const animationDuration = useSharedValue(300)
-
   const autoScrollThreshold = 0.4
   const debug = true
 
   const cols = 2,
     rows = 1,
-    pages = 3
+    pages = 5
 
   const { gridStreams, nonSharedColsPerPage } = useMemo(
     () =>
@@ -215,6 +213,7 @@ export const Hue: React.FC = () => {
   const midWaySwitchDirection = useSharedValue(false)
   const _direction = useSharedValue(0)
   const moveToClosestTValue = useSharedValue(currentStep.value)
+  const animationDuration = useSharedValue(300)
 
   const currentPage = useSharedValue(1)
   const [currentPageDisplay, setCurrentPageDispay] = useState(1)
@@ -444,6 +443,7 @@ export const Hue: React.FC = () => {
       offset.value = 0
       direction.value = 0
       _direction.value = 0
+      animationDuration.value = 300
     })
     .onUpdate(event => {
       _direction.value = event.velocityX > 0 ? 1 : -1
@@ -456,15 +456,12 @@ export const Hue: React.FC = () => {
       if (
         (midWaySwitchDirection.value === true &&
           _direction.value === 1 &&
-          currentStep.value === 0 &&
-          event.absoluteX >= width - 70) ||
+          currentStep.value === 0) ||
         (midWaySwitchDirection.value === true &&
           currentPage.value === pages &&
-          _direction.value === -1 &&
-          // FIX: console this threshold is wrong
-          event.absoluteX <= 70)
+          _direction.value === -1)
       ) {
-        animationDuration.value = 1000
+        animationDuration.value = 150
         isMouseDownForPanning.value = false
         return
       }
