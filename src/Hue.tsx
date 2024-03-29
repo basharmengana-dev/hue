@@ -182,11 +182,11 @@ const getCurrentGrid = ({
 export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
 
-  const autoScrollThreshold = 0.3
+  const autoScrollThreshold = 0.4
   const debug = true
 
-  const cols = 3,
-    rows = 1,
+  const cols = 5,
+    rows = 3,
     pages = 5
 
   const { gridStreams, nonSharedColsPerPage } = useMemo(
@@ -259,69 +259,44 @@ export const Hue: React.FC = () => {
     useSharedValue(vertex.color),
   )
 
-  function interpolate3(t: number, points: number[]): number {
+  const interpolateDynamic = (t: number, points: number[]): number => {
     'worklet'
-
-    if (points.length !== 3) {
+    if (points.length < 2) {
       return points[0]
     }
 
-    const [startPosition, midPosition, endPosition] =
-      t <= 0 ? points : [...points].reverse()
-
+    // Adjust the points order based on the direction indicated by t
+    const adjustedPoints = t <= 0 ? points : [...points].reverse()
     const absT = Math.abs(t)
 
-    let xPosition: number
+    let xPosition: number =
+      direction.value < 0
+        ? adjustedPoints[0]
+        : adjustedPoints[adjustedPoints.length - 1]
 
-    if (absT > 0 && absT <= 0.5) {
-      xPosition = startPosition + (midPosition - startPosition) * (absT / 0.5)
-    } else if (absT > 0.5 && absT < 1) {
-      xPosition =
-        midPosition + (endPosition - midPosition) * ((absT - 0.5) / 0.5)
+    // Calculate the number of segments and segment size based on the number of points
+    const segments = points.length - 1
+    const segmentSize = 1 / segments
+
+    // Explicitly handle the first segment condition
+    if (absT > 0 && absT < segmentSize) {
+      const startPos = adjustedPoints[0]
+      const endPos = adjustedPoints[1]
+      xPosition = startPos + (endPos - startPos) * (absT / segmentSize)
     } else {
-      xPosition = direction.value < 0 ? startPosition : endPosition
-    }
+      // Handle the remaining segments
+      for (let i = 1; i < segments; i++) {
+        const segmentStart = i * segmentSize
+        const segmentEnd = (i + 1) * segmentSize
 
-    return xPosition
-  }
-
-  const interpolate4 = (t: number, points: number[]): number => {
-    'worklet'
-    if (points.length !== 4) {
-      return points[0]
-    }
-
-    const [firstPosition, secondPosition, thirdPosition, fourthPosition] =
-      t <= 0 ? points : [...points].reverse()
-
-    const absT = Math.abs(t)
-    let xPosition: number = direction.value < 0 ? firstPosition : fourthPosition // Default to firstPosition
-
-    // Define conditions and corresponding actions in an array
-    const conditions = [
-      {
-        condition: absT > 0 && absT < 1 / 3,
-        action: () =>
-          firstPosition + (secondPosition - firstPosition) * (absT / (1 / 3)),
-      },
-      {
-        condition: absT >= 1 / 3 && absT < 2 / 3,
-        action: () =>
-          secondPosition +
-          (thirdPosition - secondPosition) * ((absT - 1 / 3) / (1 / 3)),
-      },
-      {
-        condition: absT >= 2 / 3 && absT < 1,
-        action: () =>
-          thirdPosition +
-          (fourthPosition - thirdPosition) * ((absT - 2 / 3) / (1 / 3)),
-      },
-    ]
-
-    for (let i = 0; i < conditions.length; i++) {
-      if (conditions[i].condition) {
-        xPosition = conditions[i].action()
-        break // Exit the loop once the correct condition is found and action executed
+        if (absT >= segmentStart && absT < segmentEnd) {
+          const startPos = adjustedPoints[i]
+          const endPos = adjustedPoints[i + 1]
+          xPosition =
+            startPos +
+            (endPos - startPos) * ((absT - segmentStart) / segmentSize)
+          break
+        }
       }
     }
 
@@ -371,7 +346,7 @@ export const Hue: React.FC = () => {
           .map(p => p.x)
           .reverse()
 
-        vertex.x.value = interpolate4(current, nextSteam)
+        vertex.x.value = interpolateDynamic(current, nextSteam)
         vertex.y.value = currentGrid.value[i].y
 
         // if (current !== 0) {
