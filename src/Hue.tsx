@@ -258,6 +258,7 @@ export const Hue: React.FC = () => {
   const leftAtColor = currentGrid.value.map(vertex =>
     useSharedValue(vertex.color),
   )
+
   function interpolate3(t: number, points: number[]): number {
     'worklet'
 
@@ -284,7 +285,7 @@ export const Hue: React.FC = () => {
     return xPosition
   }
 
-  function interpolate4(t: number, points: number[]): number {
+  const interpolate4 = (t: number, points: number[]): number => {
     'worklet'
     if (points.length !== 4) {
       return points[0]
@@ -294,21 +295,34 @@ export const Hue: React.FC = () => {
       t <= 0 ? points : [...points].reverse()
 
     const absT = Math.abs(t)
-    let xPosition: number
+    let xPosition: number = direction.value < 0 ? firstPosition : fourthPosition // Default to firstPosition
 
-    if (absT > 0 && absT < 1 / 3) {
-      xPosition =
-        firstPosition + (secondPosition - firstPosition) * (absT / (1 / 3))
-    } else if (absT >= 1 / 3 && absT < 2 / 3) {
-      xPosition =
-        secondPosition +
-        (thirdPosition - secondPosition) * ((absT - 1 / 3) / (1 / 3))
-    } else if (absT >= 2 / 3 && absT < 1) {
-      xPosition =
-        thirdPosition +
-        (fourthPosition - thirdPosition) * ((absT - 2 / 3) / (1 / 3))
-    } else {
-      xPosition = direction.value < 0 ? firstPosition : fourthPosition
+    // Define conditions and corresponding actions in an array
+    const conditions = [
+      {
+        condition: absT > 0 && absT < 1 / 3,
+        action: () =>
+          firstPosition + (secondPosition - firstPosition) * (absT / (1 / 3)),
+      },
+      {
+        condition: absT >= 1 / 3 && absT < 2 / 3,
+        action: () =>
+          secondPosition +
+          (thirdPosition - secondPosition) * ((absT - 1 / 3) / (1 / 3)),
+      },
+      {
+        condition: absT >= 2 / 3 && absT < 1,
+        action: () =>
+          thirdPosition +
+          (fourthPosition - thirdPosition) * ((absT - 2 / 3) / (1 / 3)),
+      },
+    ]
+
+    for (let i = 0; i < conditions.length; i++) {
+      if (conditions[i].condition) {
+        xPosition = conditions[i].action()
+        break // Exit the loop once the correct condition is found and action executed
+      }
     }
 
     return xPosition
