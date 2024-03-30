@@ -113,7 +113,13 @@ const createGrid = ({
     }),
   ).flat()
 
-  return { grid, hSize, vSize, totalColumns, nonSharedColsPerPage: cols }
+  return {
+    grid,
+    hSize,
+    vSize,
+    totalColumns,
+    nonSharedColsPerPage: cols,
+  }
 }
 
 const colorStream = [
@@ -153,7 +159,7 @@ const createStreamedGrid = ({
   })
 
   // .slice(4, 5)
-  const gridStreams = baseGrid.map(({ x, y }, i) => {
+  const gridStreams = baseGrid.map(({ x, y }) => {
     return Array.from({ length: totalColumns - 1 }, (_, i) => {
       const p = {
         x: x + hSize * (i + 2 - totalColumns),
@@ -166,6 +172,15 @@ const createStreamedGrid = ({
   })
 
   return { gridStreams, nonSharedColsPerPage }
+}
+
+const computeSineAdditive = (
+  x: number,
+): { xAdditive: number; yAdditive: number } => {
+  return {
+    xAdditive: Math.cos(x / 100) * 10,
+    yAdditive: Math.sin(x / 100) * 10,
+  }
 }
 
 const getCurrentGrid = ({
@@ -182,25 +197,54 @@ const getCurrentGrid = ({
 export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
 
-  const autoScrollThreshold = 0.4
+  const autoScrollThreshold = 0.3
   const debug = true
 
-  const cols = 5,
+  const cols = 3,
     rows = 3,
     pages = 5
 
-  const { gridStreams, nonSharedColsPerPage } = useMemo(
-    () =>
-      createStreamedGrid({
-        rows,
-        cols,
-        pages,
-        width,
-        height,
-        colorStream,
-      }),
-    [],
-  )
+  // if any of pages, cols or rows is less han 2 throw an error
+  if (pages < 2 || cols < 2 || rows < 2) {
+    throw new Error('Pages, cols and rows must be 2 or greater')
+  }
+
+  const { gridStreams, nonSharedColsPerPage } = useMemo(() => {
+    const { gridStreams, nonSharedColsPerPage } = createStreamedGrid({
+      rows,
+      cols,
+      pages,
+      width,
+      height,
+      colorStream,
+    })
+
+    gridStreams.forEach((stream, j) => {
+      stream.forEach((p, i) => {
+        const isFirstPageEdge = j < rows + 1
+        const isLastMostPageEdge = j >= gridStreams.length - cols * (rows + 1)
+        const isTopPosition = p.y === 0
+        const isBottomPosition = p.y === height
+        if (
+          isTopPosition ||
+          isBottomPosition ||
+          isLastMostPageEdge ||
+          isFirstPageEdge
+        ) {
+          return
+        }
+
+        //normalize the x position to be between 0 and width
+        const xNormalized = p.x
+        const sineAdditive = computeSineAdditive(xNormalized)
+
+        p.x = p.x + sineAdditive.xAdditive
+        p.y = p.y + sineAdditive.yAdditive
+      })
+    })
+
+    return { gridStreams, nonSharedColsPerPage }
+  }, [])
   // console.log(gridStreams.filter((_, i) => i === 0).map(p => p.map(p => p.x)))
 
   const currentStep = useSharedValue(0)
@@ -227,22 +271,22 @@ export const Hue: React.FC = () => {
     return { duration: animationDuration.value }
   }
 
-  useAnimatedReaction(
-    () => currentGrid.value,
-    (current, previous) => {
-      if (!previous) return
-      if (
-        current.some(
-          (c, i) =>
-            c.x !== previous[i].x ||
-            c.y !== previous[i].y ||
-            c.color !== previous[i].color,
-        )
-      ) {
-        currentGridAtTargetReady.value = true
-      }
-    },
-  )
+  // useAnimatedReaction(
+  //   () => currentGrid.value,
+  //   (current, previous) => {
+  //     if (!previous) return
+  //     if (
+  //       current.some(
+  //         (c, i) =>
+  //           c.x !== previous[i].x ||
+  //           c.y !== previous[i].y ||
+  //           c.color !== previous[i].color,
+  //       )
+  //     ) {
+  //       currentGridAtTargetReady.value = true
+  //     }
+  //   },
+  // )
 
   const xInternal = currentGrid.value.map(c => useSharedValue(c.x))
   const yInternal = currentGrid.value.map(c => useSharedValue(c.y))
@@ -259,30 +303,29 @@ export const Hue: React.FC = () => {
     useSharedValue(vertex.color),
   )
 
-  const interpolateDynamic = (t: number, points: number[]): number => {
+  const interpolateDynamic = (t: number, nextPositions: number[]): number => {
     'worklet'
-    if (points.length < 2) {
-      return points[0]
+    if (nextPositions.length < 2) {
+      return nextPositions[0]
     }
 
-    // Adjust the points order based on the direction indicated by t
-    const adjustedPoints = t <= 0 ? points : [...points].reverse()
+    const adjustedPoints = t <= 0 ? nextPositions : [...nextPositions].reverse()
     const absT = Math.abs(t)
 
-    let xPosition: number =
+    let interpolatedPosition: number =
       direction.value < 0
         ? adjustedPoints[0]
         : adjustedPoints[adjustedPoints.length - 1]
 
-    // Calculate the number of segments and segment size based on the number of points
-    const segments = points.length - 1
+    const segments = nextPositions.length - 1
     const segmentSize = 1 / segments
 
     // Explicitly handle the first segment condition
     if (absT > 0 && absT < segmentSize) {
       const startPos = adjustedPoints[0]
       const endPos = adjustedPoints[1]
-      xPosition = startPos + (endPos - startPos) * (absT / segmentSize)
+      interpolatedPosition =
+        startPos + (endPos - startPos) * (absT / segmentSize)
     } else {
       // Handle the remaining segments
       for (let i = 1; i < segments; i++) {
@@ -292,7 +335,7 @@ export const Hue: React.FC = () => {
         if (absT >= segmentStart && absT < segmentEnd) {
           const startPos = adjustedPoints[i]
           const endPos = adjustedPoints[i + 1]
-          xPosition =
+          interpolatedPosition =
             startPos +
             (endPos - startPos) * ((absT - segmentStart) / segmentSize)
           break
@@ -300,7 +343,7 @@ export const Hue: React.FC = () => {
       }
     }
 
-    return xPosition
+    return interpolatedPosition
   }
 
   const evaluateTranslationBasedOnThreshold = (
@@ -341,13 +384,18 @@ export const Hue: React.FC = () => {
           endSlice = gridStreams[i].length + currentStep.value + cols
         }
 
-        const nextSteam = gridStreams[i]
-          .slice(startSlice, endSlice)
-          .map(p => p.x)
-          .reverse()
+        const nextSteam = gridStreams[i].slice(startSlice, endSlice)
 
-        vertex.x.value = interpolateDynamic(current, nextSteam)
-        vertex.y.value = currentGrid.value[i].y
+        // iterace over next stream starting from the end
+        const xJourney: number[] = []
+        const yJourney: number[] = []
+        for (let j = nextSteam.length - 1; j >= 0; j--) {
+          xJourney.push(nextSteam[j].x)
+          yJourney.push(nextSteam[j].y)
+        }
+
+        vertex.x.value = interpolateDynamic(current, xJourney)
+        vertex.y.value = interpolateDynamic(current, yJourney)
 
         // if (current !== 0) {
         //   const color_ = interpolateColor(
@@ -460,7 +508,7 @@ export const Hue: React.FC = () => {
       offset.value = 0
       direction.value = 0
       _direction.value = 0
-      animationDuration.value = 300
+      animationDuration.value = 500
     })
     .onUpdate(event => {
       _direction.value = event.velocityX > 0 ? 1 : -1
@@ -478,7 +526,7 @@ export const Hue: React.FC = () => {
           currentPage.value === pages &&
           _direction.value === -1)
       ) {
-        animationDuration.value = 200
+        animationDuration.value = 300
         isMouseDownForPanning.value = false
         return
       }
