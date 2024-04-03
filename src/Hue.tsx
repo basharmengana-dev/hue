@@ -9,12 +9,12 @@ import {
 import { Text, View, useWindowDimensions } from 'react-native'
 import {
   SharedValue,
-  interpolateColor,
   runOnJS,
   useAnimatedReaction,
   useDerivedValue,
   useSharedValue,
   withTiming,
+  interpolateColor,
 } from 'react-native-reanimated'
 import {
   Gesture,
@@ -22,6 +22,32 @@ import {
   GestureHandlerRootView,
 } from 'react-native-gesture-handler'
 import cdt2d from 'cdt2d'
+
+const printColor = (colorStr: string, message?: any) => {
+  'worklet'
+  // Parse the string to an unsigned 32-bit integer.
+  const colorInt = parseInt(colorStr, 10)
+
+  // Convert the integer to a hexadecimal string, ensuring it's padded to 8 characters for ARGB.
+  const hexStr = colorInt.toString(16).padStart(8, '0')
+
+  // Return the hexadecimal color code in #AARRGGBB format.
+  // If you prefer #RRGGBB format (ignoring alpha), you can modify the return to `#${hexStr.substring(2)}`.
+  const hexColor = `#${hexStr.substring(2)}`
+
+  // Extract RGB components from hex color
+  const hex = hexColor.startsWith('#') ? hexColor.substring(1) : hexColor
+  const r = parseInt(hex.substring(0, 2), 16)
+  const g = parseInt(hex.substring(2, 4), 16)
+  const b = parseInt(hex.substring(4, 6), 16)
+
+  // ANSI escape sequence for setting text color
+  const ansiStart = `\x1b[38;2;${r};${g};${b}m`
+  const ansiEnd = `\x1b[0m` // Reset to default after
+
+  if (message) console.log(`${message}, ${ansiStart}${hexColor}${ansiEnd}`)
+  else console.log(`${ansiStart}${hexColor}${ansiEnd}`)
+}
 
 const HueBackground = ({
   colors,
@@ -33,7 +59,6 @@ const HueBackground = ({
   target: {
     x: SharedValue<number>
     y: SharedValue<number>
-    color: SharedValue<string>
   }[]
   derivedVertices: SharedValue<
     {
@@ -82,8 +107,6 @@ const HueBackground = ({
 }
 
 type Vertex = { x: number; y: number }
-type ColoredVertex = Vertex & { color: string }
-
 const createGrid = ({
   rows,
   cols,
@@ -122,28 +145,18 @@ const createGrid = ({
   }
 }
 
-const colorStream = [
-  '#FFB6C1',
-  '#00FFFF',
-  '#90EE90',
-  '#FFDAB9',
-  '#D8BFD8',
-].reverse()
-
 const createStreamedGrid = ({
   rows,
   cols,
   pages,
   width,
   height,
-  colorStream,
 }: {
   rows: number
   cols: number
   pages: number
   width: number
   height: number
-  colorStream: string[]
 }) => {
   const {
     grid: baseGrid,
@@ -164,7 +177,6 @@ const createStreamedGrid = ({
       const p = {
         x: x + hSize * (i + 2 - totalColumns),
         y: y,
-        color: colorStream[0],
       }
 
       return p
@@ -187,7 +199,7 @@ const getCurrentGrid = ({
   gridStreams,
   current,
 }: {
-  gridStreams: ColoredVertex[][]
+  gridStreams: Vertex[][]
   current: number
 }) => {
   'worklet'
@@ -197,12 +209,12 @@ const getCurrentGrid = ({
 export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
 
-  const autoScrollThreshold = 0.3
+  const autoScrollThreshold = 0.6
   const debug = true
 
-  const cols = 3,
-    rows = 3,
-    pages = 5
+  const cols = 2,
+    rows = 2,
+    pages = 2
 
   // if any of pages, cols or rows is less han 2 throw an error
   if (pages < 2 || cols < 2 || rows < 2) {
@@ -216,7 +228,6 @@ export const Hue: React.FC = () => {
       pages,
       width,
       height,
-      colorStream,
     })
 
     gridStreams.forEach((stream, j) => {
@@ -244,8 +255,8 @@ export const Hue: React.FC = () => {
     })
 
     return { gridStreams, nonSharedColsPerPage }
-  }, [])
-  // console.log(gridStreams.filter((_, i) => i === 0).map(p => p.map(p => p.x)))
+  }, [rows, cols, pages, width, height])
+  // gridStreams.map(stream => console.log(stream.map(p => p.x)))
 
   const currentStep = useSharedValue(0)
   const direction = useSharedValue(0)
@@ -265,6 +276,20 @@ export const Hue: React.FC = () => {
   const currentGrid = useDerivedValue(() =>
     getCurrentGrid({ gridStreams, current: currentStep.value }),
   )
+
+  const xInternal = currentGrid.value.map(c => useSharedValue(c.x))
+  const yInternal = currentGrid.value.map(c => useSharedValue(c.y))
+  const colorPerPage = ['#FFB6C1', '#90EE90']
+  const currentColors = Array.from(
+    { length: (cols + 1) * (rows + 1) },
+    (_, i) => useSharedValue(colorPerPage[currentStep.value]),
+  )
+
+  const targetColors = Array.from({ length: (cols + 1) * (rows + 1) }, (_, i) =>
+    useSharedValue(colorPerPage[currentStep.value + 1]),
+  )
+
+  const colorsInternal = currentColors.map(c => useSharedValue(c.value))
 
   const getAnimationConfig = () => {
     'worklet'
@@ -288,20 +313,17 @@ export const Hue: React.FC = () => {
   //   },
   // )
 
-  const xInternal = currentGrid.value.map(c => useSharedValue(c.x))
-  const yInternal = currentGrid.value.map(c => useSharedValue(c.y))
-
   const target = currentGrid.value.map((currentVertex, vertexIndex) => {
     return {
       x: useSharedValue(currentVertex.x),
       y: useSharedValue(currentVertex.y),
-      color: useSharedValue(currentVertex.color),
+      // color: useSharedValue(currentVertex.color),
     }
   })
 
-  const leftAtColor = currentGrid.value.map(vertex =>
-    useSharedValue(vertex.color),
-  )
+  // const leftAtColor = currentGrid.value.map(vertex =>
+  //   useSharedValue(vertex.color),
+  // )
 
   const interpolateDynamic = (t: number, nextPositions: number[]): number => {
     'worklet'
@@ -411,6 +433,84 @@ export const Hue: React.FC = () => {
   )
 
   useAnimatedReaction(
+    () => colorsInternal[0].value,
+    (currentColor, previousColor) => {
+      if (previousColor === null) return
+
+      if (offset.value) {
+        printColor(currentColor, offset.value)
+      } else {
+        printColor(
+          currentColor,
+          (xInternal[0].value - target[0].x.value) / width,
+        )
+      }
+    },
+  )
+
+  // Panning color animation
+  const storedOffset = useSharedValue(0)
+  useAnimatedReaction(
+    () => offset.value,
+    (current, _) => {
+      if (
+        isPanningRunning.value === true &&
+        isMouseDownForPanning.value === true
+      ) {
+        currentColors.forEach((color, i) => {
+          colorsInternal[i].value = interpolateColor(
+            Math.abs(offset.value),
+            [0, 1],
+            [color.value, targetColors[i].value],
+          )
+        })
+        storedOffset.value = offset.value
+      }
+    },
+  )
+
+  // Snap back color animation
+  useAnimatedReaction(
+    () => xInternal[0].value,
+    () => {
+      if (isPanningRunning.value === false) {
+        if (isMouseDownForPanning.value === false) {
+          colorsInternal.forEach((color, i) => {
+            colorsInternal[i].value = interpolateColor(
+              Math.abs(xInternal[0].value - target[0].x.value) / width,
+              [Math.abs(storedOffset.value), 0],
+              [colorsInternal[i].value, targetColors[i].value],
+            )
+          })
+        }
+      }
+    },
+  )
+
+  // useAnimatedReaction(
+  //   () => direction.value,
+  //   (currentDirection, previousDirection) => {
+  //     if (currentDirection === 0 || previousDirection === null) {
+  //       return
+  //     }
+
+  //     if (currentDirection !== previousDirection) {
+  //       // console.log(
+  //       //   'currentDirection',
+  //       //   currentDirection,
+  //       //   'previousDirection',
+  //       //   previousDirection,
+  //       //   'currentPage',
+  //       //   currentPage.value,
+  //       // )
+  //       targetColors.forEach((color, i) => {
+  //         color.value = colorPerPage[currentPage.value - 1 - currentDirection]
+  //       })
+  //     }
+  //   },
+  // )
+
+  useAnimatedReaction(
     () => xInternal[0].value,
     current => {
       let startSlice = 0
@@ -454,24 +554,24 @@ export const Hue: React.FC = () => {
     },
   )
 
-  useAnimatedReaction(
-    () => xInternal[0].value,
-    () => {
-      if (
-        isMouseDownForPanning.value === false &&
-        direction.value !== 0 &&
-        currentGridAtTargetReady.value === true
-      ) {
-        target.forEach((vertex, i) => {
-          vertex.color.value = interpolateColor(
-            Math.abs(xInternal[0].value - target[0].x.value) / width,
-            [autoScrollThreshold, 0],
-            [leftAtColor[i].value, currentGrid.value[i].color],
-          )
-        })
-      }
-    },
-  )
+  // useAnimatedReaction(
+  //   () => xInternal[0].value,
+  //   () => {
+  //     if (
+  //       isMouseDownForPanning.value === false &&
+  //       direction.value !== 0 &&
+  //       currentGridAtTargetReady.value === true
+  //     ) {
+  //       target.forEach((vertex, i) => {
+  //         vertex.color.value = interpolateColor(
+  //           Math.abs(xInternal[0].value - target[0].x.value) / width,
+  //           [autoScrollThreshold, 0],
+  //           [leftAtColor[i].value, currentGrid.value[i].color],
+  //         )
+  //       })
+  //     }
+  //   },
+  // )
 
   useAnimatedReaction(
     () => currentStep.value,
@@ -506,6 +606,7 @@ export const Hue: React.FC = () => {
       isPanningRunning.value = true
       isMouseDownForPanning.value = true
       offset.value = 0
+      storedOffset.value = 0
       direction.value = 0
       _direction.value = 0
       animationDuration.value = 500
@@ -635,19 +736,17 @@ export const Hue: React.FC = () => {
     })),
   )
 
-  const colors = useDerivedValue(() => target.map(vertex => vertex.color.value))
-
   return (
     <View style={{ flex: 1 }}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <GestureDetector gesture={pan}>
           <Canvas style={{ flex: 1, backgroundColor: 'white' }}>
-            <HueBackground
+            {/* <HueBackground
               colors={colors}
               target={target}
               derivedVertices={derivedVertices}
               debug={debug}
-            />
+            /> */}
             {debug ? (
               xInternal.map((x, i) => (
                 <Circle
@@ -655,7 +754,7 @@ export const Hue: React.FC = () => {
                   cx={x}
                   cy={yInternal[i]}
                   r={20}
-                  color={target[i].color}>
+                  color={colorsInternal[0]}>
                   <Paint color="black" style="stroke" strokeWidth={1} />
                 </Circle>
               ))
