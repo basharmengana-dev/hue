@@ -23,6 +23,20 @@ import {
 } from 'react-native-gesture-handler'
 import cdt2d from 'cdt2d'
 
+function printColorHex(hexColor: string) {
+  // Extract RGB components from hex color
+  const hex = hexColor.startsWith('#') ? hexColor.substring(1) : hexColor
+  const r = parseInt(hex.substring(0, 2), 16)
+  const g = parseInt(hex.substring(2, 4), 16)
+  const b = parseInt(hex.substring(4, 6), 16)
+
+  // ANSI escape sequence for setting text color
+  const ansiStart = `\x1b[38;2;${r};${g};${b}m`
+  const ansiEnd = `\x1b[0m` // Reset to default after
+
+  console.log(`${ansiStart}${hexColor}${ansiEnd}`)
+}
+
 const printColor = (colorStr: string, message?: any) => {
   'worklet'
   // Parse the string to an unsigned 32-bit integer.
@@ -209,7 +223,7 @@ const getCurrentGrid = ({
 export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
 
-  const autoScrollThreshold = 0.6
+  const autoScrollThreshold = 0.4
   const debug = true
 
   const cols = 2,
@@ -432,18 +446,39 @@ export const Hue: React.FC = () => {
     },
   )
 
-  useAnimatedReaction(
-    () => colorsInternal[0].value,
-    (currentColor, previousColor) => {
-      if (previousColor === null) return
+  // useAnimatedReaction(
+  //   () => colorsInternal[0].value,
+  //   (currentColor, previousColor) => {
+  //     if (previousColor === null) return
 
-      if (offset.value) {
-        printColor(currentColor, offset.value)
-      } else {
-        printColor(
-          currentColor,
-          (xInternal[0].value - target[0].x.value) / width,
-        )
+  //     if (offset.value) {
+  //       printColor(currentColor)//, offset.value)
+  //     } else {
+  //       printColor(currentColor)//,(xInternal[0].value - target[0].x.value) / width,
+  //     }
+  //   },
+  // )
+
+  useAnimatedReaction(
+    () => direction.value,
+    (currentDirection, previousDirection) => {
+      if (currentDirection !== previousDirection) {
+        targetColors.forEach((color, i) => {
+          color.value = colorPerPage[currentPage.value - 1 - currentDirection]
+        })
+      }
+    },
+  )
+
+  useAnimatedReaction(
+    () => currentPage.value,
+    (currentPageVal, previousPageVal) => {
+      if (previousPageVal === null) return
+
+      if (currentPageVal !== previousPageVal) {
+        currentColors.forEach((color, i) => {
+          color.value = targetColors[i].value
+        })
       }
     },
   )
@@ -465,6 +500,10 @@ export const Hue: React.FC = () => {
           )
         })
         storedOffset.value = offset.value
+      } else {
+        targetColors.forEach((color, i) => {
+          color.value = currentColors[i].value
+        })
       }
     },
   )
