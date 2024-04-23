@@ -228,9 +228,8 @@ export const Hue: React.FC = () => {
 
   const cols = 2,
     rows = 2,
-    pages = 2
+    pages = 7
 
-  // if any of pages, cols or rows is less han 2 throw an error
   if (pages < 2 || cols < 2 || rows < 2) {
     throw new Error('Pages, cols and rows must be 2 or greater')
   }
@@ -270,7 +269,6 @@ export const Hue: React.FC = () => {
 
     return { gridStreams, nonSharedColsPerPage }
   }, [rows, cols, pages, width, height])
-  // gridStreams.map(stream => console.log(stream.map(p => p.x)))
 
   const currentStep = useSharedValue(0)
   const direction = useSharedValue(0)
@@ -293,7 +291,15 @@ export const Hue: React.FC = () => {
 
   const xInternal = currentGrid.value.map(c => useSharedValue(c.x))
   const yInternal = currentGrid.value.map(c => useSharedValue(c.y))
-  const colorPerPage = ['#FFB6C1', '#90EE90']
+  const colorPerPage = [
+    '#FFB6C1',
+    '#90EE90',
+    '#87CEFA',
+    '#FFD700',
+    '#FF69B4',
+    '#00FFFF',
+    '#FF6347',
+  ]
   const currentColors = Array.from(
     { length: (cols + 1) * (rows + 1) },
     (_, i) => useSharedValue(colorPerPage[currentStep.value]),
@@ -310,34 +316,12 @@ export const Hue: React.FC = () => {
     return { duration: animationDuration.value }
   }
 
-  // useAnimatedReaction(
-  //   () => currentGrid.value,
-  //   (current, previous) => {
-  //     if (!previous) return
-  //     if (
-  //       current.some(
-  //         (c, i) =>
-  //           c.x !== previous[i].x ||
-  //           c.y !== previous[i].y ||
-  //           c.color !== previous[i].color,
-  //       )
-  //     ) {
-  //       currentGridAtTargetReady.value = true
-  //     }
-  //   },
-  // )
-
-  const target = currentGrid.value.map((currentVertex, vertexIndex) => {
+  const target = currentGrid.value.map(currentVertex => {
     return {
       x: useSharedValue(currentVertex.x),
       y: useSharedValue(currentVertex.y),
-      // color: useSharedValue(currentVertex.color),
     }
   })
-
-  // const leftAtColor = currentGrid.value.map(vertex =>
-  //   useSharedValue(vertex.color),
-  // )
 
   const interpolateDynamic = (t: number, nextPositions: number[]): number => {
     'worklet'
@@ -432,16 +416,6 @@ export const Hue: React.FC = () => {
 
         vertex.x.value = interpolateDynamic(current, xJourney)
         vertex.y.value = interpolateDynamic(current, yJourney)
-
-        // if (current !== 0) {
-        //   const color_ = interpolateColor(
-        //     Math.abs(current),
-        //     [0, 1],
-        //     [currentGrid.value[i].color, targetGrid.value[i].color],
-        //   )
-        //   vertex.color.value = color_
-        //   leftAtColor[i].value = color_
-        // }
       })
     },
   )
@@ -452,9 +426,9 @@ export const Hue: React.FC = () => {
   //     if (previousColor === null) return
 
   //     if (offset.value) {
-  //       printColor(currentColor)//, offset.value)
+  //       printColor(currentColor) //, offset.value)
   //     } else {
-  //       printColor(currentColor)//,(xInternal[0].value - target[0].x.value) / width,
+  //       printColor(currentColor) //,(xInternal[0].value - target[0].x.value) / width,
   //     }
   //   },
   // )
@@ -487,19 +461,19 @@ export const Hue: React.FC = () => {
   const storedOffset = useSharedValue(0)
   useAnimatedReaction(
     () => offset.value,
-    (current, _) => {
+    current => {
       if (
         isPanningRunning.value === true &&
         isMouseDownForPanning.value === true
       ) {
         currentColors.forEach((color, i) => {
           colorsInternal[i].value = interpolateColor(
-            Math.abs(offset.value),
+            Math.abs(current),
             [0, 1],
             [color.value, targetColors[i].value],
           )
         })
-        storedOffset.value = offset.value
+        storedOffset.value = current
       } else {
         targetColors.forEach((color, i) => {
           color.value = currentColors[i].value
@@ -509,6 +483,20 @@ export const Hue: React.FC = () => {
   )
 
   // Snap back color animation
+  const didFlipPage = useSharedValue(false)
+  useAnimatedReaction(
+    () => currentPage.value,
+    (current, previous) => {
+      if (previous === null) return
+
+      if (current !== previous) {
+        didFlipPage.value = true
+      } else {
+        didFlipPage.value = false
+      }
+    },
+  )
+
   useAnimatedReaction(
     () => xInternal[0].value,
     () => {
@@ -517,7 +505,12 @@ export const Hue: React.FC = () => {
           colorsInternal.forEach((color, i) => {
             colorsInternal[i].value = interpolateColor(
               Math.abs(xInternal[0].value - target[0].x.value) / width,
-              [Math.abs(storedOffset.value), 0],
+              [
+                didFlipPage.value
+                  ? 1 - Math.abs(storedOffset.value)
+                  : Math.abs(storedOffset.value),
+                0,
+              ],
               [colorsInternal[i].value, targetColors[i].value],
             )
           })
@@ -525,29 +518,6 @@ export const Hue: React.FC = () => {
       }
     },
   )
-
-  // useAnimatedReaction(
-  //   () => direction.value,
-  //   (currentDirection, previousDirection) => {
-  //     if (currentDirection === 0 || previousDirection === null) {
-  //       return
-  //     }
-
-  //     if (currentDirection !== previousDirection) {
-  //       // console.log(
-  //       //   'currentDirection',
-  //       //   currentDirection,
-  //       //   'previousDirection',
-  //       //   previousDirection,
-  //       //   'currentPage',
-  //       //   currentPage.value,
-  //       // )
-  //       targetColors.forEach((color, i) => {
-  //         color.value = colorPerPage[currentPage.value - 1 - currentDirection]
-  //       })
-  //     }
-  //   },
-  // )
 
   useAnimatedReaction(
     () => xInternal[0].value,
@@ -593,25 +563,6 @@ export const Hue: React.FC = () => {
     },
   )
 
-  // useAnimatedReaction(
-  //   () => xInternal[0].value,
-  //   () => {
-  //     if (
-  //       isMouseDownForPanning.value === false &&
-  //       direction.value !== 0 &&
-  //       currentGridAtTargetReady.value === true
-  //     ) {
-  //       target.forEach((vertex, i) => {
-  //         vertex.color.value = interpolateColor(
-  //           Math.abs(xInternal[0].value - target[0].x.value) / width,
-  //           [autoScrollThreshold, 0],
-  //           [leftAtColor[i].value, currentGrid.value[i].color],
-  //         )
-  //       })
-  //     }
-  //   },
-  // )
-
   useAnimatedReaction(
     () => currentStep.value,
     (current, previous) => {
@@ -649,6 +600,7 @@ export const Hue: React.FC = () => {
       direction.value = 0
       _direction.value = 0
       animationDuration.value = 500
+      didFlipPage.value = false
     })
     .onUpdate(event => {
       _direction.value = event.velocityX > 0 ? 1 : -1
@@ -775,17 +727,21 @@ export const Hue: React.FC = () => {
     })),
   )
 
+  const derivedColor = useDerivedValue(() =>
+    derivedVertices.value.map(() => colorsInternal[0].value),
+  )
+
   return (
     <View style={{ flex: 1 }}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <GestureDetector gesture={pan}>
           <Canvas style={{ flex: 1, backgroundColor: 'white' }}>
-            {/* <HueBackground
-              colors={colors}
+            <HueBackground
+              colors={derivedColor}
               target={target}
               derivedVertices={derivedVertices}
               debug={debug}
-            /> */}
+            />
             {debug ? (
               xInternal.map((x, i) => (
                 <Circle
@@ -807,13 +763,19 @@ export const Hue: React.FC = () => {
       <View
         style={{
           position: 'absolute',
-          top: height - 20,
+          top: height - 30,
           left: 0,
           width: width,
           height: 50,
           backgroundColor: 'rgba(255, 255, 255, 0.5)',
         }}>
-        <Text>{`${currentPageDisplay} / ${pages}`}</Text>
+        <View
+          style={{
+            top: 0,
+            left: 30,
+          }}>
+          <Text>{`${currentPageDisplay} / ${pages}`}</Text>
+        </View>
       </View>
     </View>
   )
