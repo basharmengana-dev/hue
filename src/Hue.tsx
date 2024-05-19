@@ -229,11 +229,11 @@ export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
   const [debug, setDebug] = useState(true)
 
-  const autoScrollThreshold = 0.5
+  const autoScrollThreshold = 0.3
 
   const cols = 3,
     rows = 5,
-    pages = 3
+    pages = 5
 
   if (pages < 2 || cols < 2 || rows < 2) {
     throw new Error('Pages, cols and rows must be 2 or greater')
@@ -266,8 +266,8 @@ export const Hue: React.FC = () => {
         //normalize the x position to be between 0 and width
         const sineAdditive = computeSineAdditive(p.x, p.y)
 
-        // p.x = p.x + sineAdditive.xAdditive
-        // p.y = p.y + sineAdditive.yAdditive
+        p.x = p.x + sineAdditive.xAdditive
+        p.y = p.y + sineAdditive.yAdditive
       })
     })
 
@@ -358,33 +358,79 @@ export const Hue: React.FC = () => {
 
     // ----------------
 
-    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E87', pageB: 2, edge: true },
-    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E87', pageB: 2, edge: true },
-    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E87', pageB: 2, edge: true },
-    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E87', pageB: 2, edge: true },
-    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E87', pageB: 2, edge: true },
-    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E87', pageB: 2, edge: true },
+    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E44', pageB: 2, edge: true },
+    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E44', pageB: 2, edge: true },
+    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E44', pageB: 2, edge: true },
+    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E44', pageB: 2, edge: true },
+    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E44', pageB: 2, edge: true },
+    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E44', pageB: 2, edge: true },
 
-    { colorA: '#7B9E87', pageA: 2, edge: false },
-    { colorA: '#7B9E87', pageA: 2, edge: false },
-    { colorA: '#7B9E87', pageA: 2, edge: false },
-    { colorA: '#7B9E87', pageA: 2, edge: false },
-    { colorA: '#7B9E87', pageA: 2, edge: false },
-    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E44', pageA: 2, edge: false },
+    { colorA: '#7B9E44', pageA: 2, edge: false },
+    { colorA: '#7B9E44', pageA: 2, edge: false },
+    { colorA: '#7B9E44', pageA: 2, edge: false },
+    { colorA: '#7B9E44', pageA: 2, edge: false },
+    { colorA: '#7B9E44', pageA: 2, edge: false },
 
-    { colorA: '#7B9E87', pageA: 2, edge: false },
-    { colorA: '#7B9E87', pageA: 2, edge: false },
-    { colorA: '#7B9E87', pageA: 2, edge: false },
-    { colorA: '#7B9E87', pageA: 2, edge: false },
-    { colorA: '#7B9E87', pageA: 2, edge: false },
-    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E44', pageA: 2, edge: false },
+    { colorA: '#7B9E44', pageA: 2, edge: false },
+    { colorA: '#7B9E44', pageA: 2, edge: false },
+    { colorA: '#7B9E44', pageA: 2, edge: false },
+    { colorA: '#7B9E44', pageA: 2, edge: false },
+    { colorA: '#7B9E44', pageA: 2, edge: false },
 
-    { colorA: '#7B9E87', pageA: 2, edge: false },
-    { colorA: '#7B9E87', pageA: 2, edge: false },
-    { colorA: '#7B9E87', pageA: 2, edge: false },
-    { colorA: '#7B9E87', pageA: 2, edge: false },
-    { colorA: '#7B9E87', pageA: 2, edge: false },
-    { colorA: '#7B9E87', pageA: 2, edge: false },
+    // ----------------
+
+    { colorA: '#7B9E44', pageA: 2, colorB: '#FFD166', pageB: 3, edge: true },
+    { colorA: '#7B9E44', pageA: 2, colorB: '#FFD166', pageB: 3, edge: true },
+    { colorA: '#7B9E44', pageA: 2, colorB: '#FFD166', pageB: 3, edge: true },
+    { colorA: '#7B9E44', pageA: 2, colorB: '#FFD166', pageB: 3, edge: true },
+    { colorA: '#7B9E44', pageA: 2, colorB: '#FFD166', pageB: 3, edge: true },
+    { colorA: '#7B9E44', pageA: 2, colorB: '#FFD166', pageB: 3, edge: true },
+
+    { colorA: '#FFD166', pageA: 3, edge: false },
+    { colorA: '#FFD166', pageA: 3, edge: false },
+    { colorA: '#FFD166', pageA: 3, edge: false },
+    { colorA: '#FFD166', pageA: 3, edge: false },
+    { colorA: '#FFD166', pageA: 3, edge: false },
+    { colorA: '#FFD166', pageA: 3, edge: false },
+
+    { colorA: '#FFD166', pageA: 3, edge: false },
+    { colorA: '#FFD166', pageA: 3, edge: false },
+    { colorA: '#FFD166', pageA: 3, edge: false },
+    { colorA: '#FFD166', pageA: 3, edge: false },
+    { colorA: '#FFD166', pageA: 3, edge: false },
+    { colorA: '#FFD166', pageA: 3, edge: false },
+
+    // ----------------
+
+    { colorA: '#FFD166', pageA: 3, colorB: '#1B9944', pageB: 4, edge: true },
+    { colorA: '#FFD166', pageA: 3, colorB: '#1B9944', pageB: 4, edge: true },
+    { colorA: '#FFD166', pageA: 3, colorB: '#1B9944', pageB: 4, edge: true },
+    { colorA: '#FFD166', pageA: 3, colorB: '#1B9944', pageB: 4, edge: true },
+    { colorA: '#FFD166', pageA: 3, colorB: '#1B9944', pageB: 4, edge: true },
+    { colorA: '#FFD166', pageA: 3, colorB: '#1B9944', pageB: 4, edge: true },
+
+    { colorA: '#1B9944', pageA: 4, edge: false },
+    { colorA: '#1B9944', pageA: 4, edge: false },
+    { colorA: '#1B9944', pageA: 4, edge: false },
+    { colorA: '#1B9944', pageA: 4, edge: false },
+    { colorA: '#1B9944', pageA: 4, edge: false },
+    { colorA: '#1B9944', pageA: 4, edge: false },
+
+    { colorA: '#1B9944', pageA: 4, edge: false },
+    { colorA: '#1B9944', pageA: 4, edge: false },
+    { colorA: '#1B9944', pageA: 4, edge: false },
+    { colorA: '#1B9944', pageA: 4, edge: false },
+    { colorA: '#1B9944', pageA: 4, edge: false },
+    { colorA: '#1B9944', pageA: 4, edge: false },
+
+    { colorA: '#1B9944', pageA: 4, edge: false },
+    { colorA: '#1B9944', pageA: 4, edge: false },
+    { colorA: '#1B9944', pageA: 4, edge: false },
+    { colorA: '#1B9944', pageA: 4, edge: false },
+    { colorA: '#1B9944', pageA: 4, edge: false },
+    { colorA: '#1B9944', pageA: 4, edge: false },
   ]
 
   const colorStreams = useSharedValue(scene.map(cMap => cMap.colorA))
