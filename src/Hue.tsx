@@ -6,7 +6,7 @@ import {
   Path,
   Vertices,
 } from '@shopify/react-native-skia'
-import { Text, View, useWindowDimensions } from 'react-native'
+import { Button, Share, Text, View, useWindowDimensions } from 'react-native'
 import {
   SharedValue,
   runOnJS,
@@ -23,21 +23,7 @@ import {
 } from 'react-native-gesture-handler'
 import cdt2d from 'cdt2d'
 
-function printColorHex(hexColor: string) {
-  // Extract RGB components from hex color
-  const hex = hexColor.startsWith('#') ? hexColor.substring(1) : hexColor
-  const r = parseInt(hex.substring(0, 2), 16)
-  const g = parseInt(hex.substring(2, 4), 16)
-  const b = parseInt(hex.substring(4, 6), 16)
-
-  // ANSI escape sequence for setting text color
-  const ansiStart = `\x1b[38;2;${r};${g};${b}m`
-  const ansiEnd = `\x1b[0m` // Reset to default after
-
-  console.log(`${ansiStart}${hexColor}${ansiEnd}`)
-}
-
-const printColor = (colorStr: string, message?: any) => {
+const printColorNumber = (colorStr: any) => {
   'worklet'
   // Parse the string to an unsigned 32-bit integer.
   const colorInt = parseInt(colorStr, 10)
@@ -59,8 +45,26 @@ const printColor = (colorStr: string, message?: any) => {
   const ansiStart = `\x1b[38;2;${r};${g};${b}m`
   const ansiEnd = `\x1b[0m` // Reset to default after
 
-  if (message) console.log(`${message}, ${ansiStart}${hexColor}${ansiEnd}`)
-  else console.log(`${ansiStart}${hexColor}${ansiEnd}`)
+  return `${ansiStart}${hexColor}${ansiEnd}`
+}
+
+const c = (hexColor: any) => {
+  'worklet'
+  //check if hexcolor is a number
+  const isNumber = typeof hexColor === 'number'
+  if (isNumber) return printColorNumber(hexColor)
+
+  // Extract RGB components from hex color
+  const hex = hexColor.startsWith('#') ? hexColor.substring(1) : hexColor
+  const r = parseInt(hex.substring(0, 2), 16)
+  const g = parseInt(hex.substring(2, 4), 16)
+  const b = parseInt(hex.substring(4, 6), 16)
+
+  // ANSI escape sequence for setting text color
+  const ansiStart = `\x1b[38;2;${r};${g};${b}m`
+  const ansiEnd = `\x1b[0m` // Reset to default after
+
+  return `${ansiStart}${hexColor}${ansiEnd}`
 }
 
 const HueBackground = ({
@@ -186,13 +190,13 @@ const createStreamedGrid = ({
   })
 
   // .slice(4, 5)
-  const gridStreams = baseGrid.map(({ x, y }) => {
+
+  const gridStreams = baseGrid.map(({ x, y }, j) => {
     return Array.from({ length: totalColumns - 1 }, (_, i) => {
       const p = {
         x: x + hSize * (i + 2 - totalColumns),
         y: y,
       }
-
       return p
     })
   })
@@ -202,10 +206,11 @@ const createStreamedGrid = ({
 
 const computeSineAdditive = (
   x: number,
+  y: number,
 ): { xAdditive: number; yAdditive: number } => {
   return {
-    xAdditive: Math.cos(x / 100) * 10,
-    yAdditive: Math.sin(x / 100) * 10,
+    xAdditive: Math.cos(x / 130) * 60, // increase amplitude to pull middle points closer
+    yAdditive: Math.sin(x / 130) * 60,
   }
 }
 
@@ -222,13 +227,13 @@ const getCurrentGrid = ({
 
 export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
+  const [debug, setDebug] = useState(true)
 
-  const autoScrollThreshold = 0.4
-  const debug = true
+  const autoScrollThreshold = 0.5
 
-  const cols = 2,
-    rows = 2,
-    pages = 7
+  const cols = 3,
+    rows = 5,
+    pages = 3
 
   if (pages < 2 || cols < 2 || rows < 2) {
     throw new Error('Pages, cols and rows must be 2 or greater')
@@ -259,11 +264,17 @@ export const Hue: React.FC = () => {
         }
 
         //normalize the x position to be between 0 and width
-        const xNormalized = p.x
-        const sineAdditive = computeSineAdditive(xNormalized)
+        const sineAdditive = computeSineAdditive(p.x, p.y)
 
-        p.x = p.x + sineAdditive.xAdditive
-        p.y = p.y + sineAdditive.yAdditive
+        // p.x = p.x + sineAdditive.xAdditive
+        // p.y = p.y + sineAdditive.yAdditive
+      })
+    })
+
+    gridStreams.forEach(stream => {
+      stream.forEach(p => {
+        p.x = Math.round(p.x)
+        p.y = Math.round(p.y)
       })
     })
 
@@ -281,6 +292,7 @@ export const Hue: React.FC = () => {
   const _direction = useSharedValue(0)
   const moveToClosestTValue = useSharedValue(currentStep.value)
   const animationDuration = useSharedValue(300)
+  const didFlipPage = useSharedValue(false)
 
   const currentPage = useSharedValue(1)
   const [currentPageDisplay, setCurrentPageDispay] = useState(1)
@@ -291,30 +303,6 @@ export const Hue: React.FC = () => {
 
   const xInternal = currentGrid.value.map(c => useSharedValue(c.x))
   const yInternal = currentGrid.value.map(c => useSharedValue(c.y))
-  const colorPerPage = [
-    '#FFB6C1',
-    '#90EE90',
-    '#87CEFA',
-    '#FFD700',
-    '#FF69B4',
-    '#00FFFF',
-    '#FF6347',
-  ]
-  const currentColors = Array.from(
-    { length: (cols + 1) * (rows + 1) },
-    (_, i) => useSharedValue(colorPerPage[currentStep.value]),
-  )
-
-  const targetColors = Array.from({ length: (cols + 1) * (rows + 1) }, (_, i) =>
-    useSharedValue(colorPerPage[currentStep.value + 1]),
-  )
-
-  const colorsInternal = currentColors.map(c => useSharedValue(c.value))
-
-  const getAnimationConfig = () => {
-    'worklet'
-    return { duration: animationDuration.value }
-  }
 
   const target = currentGrid.value.map(currentVertex => {
     return {
@@ -322,6 +310,201 @@ export const Hue: React.FC = () => {
       y: useSharedValue(currentVertex.y),
     }
   })
+
+  const scene = [
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+    { colorA: '#FF94A3', pageA: 0, edge: false },
+
+    // ----------------
+
+    { colorA: '#FF94A3', pageA: 0, colorB: '#C7CEEA', pageB: 1, edge: true },
+    { colorA: '#FF94A3', pageA: 0, colorB: '#C7CEEA', pageB: 1, edge: true },
+    { colorA: '#FF94A3', pageA: 0, colorB: '#C7CEEA', pageB: 1, edge: true },
+    { colorA: '#FF94A3', pageA: 0, colorB: '#C7CEEA', pageB: 1, edge: true },
+    { colorA: '#FF94A3', pageA: 0, colorB: '#C7CEEA', pageB: 1, edge: true },
+    { colorA: '#FF94A3', pageA: 0, colorB: '#C7CEEA', pageB: 1, edge: true },
+
+    { colorA: '#C7CEEA', pageA: 1, edge: false },
+    { colorA: '#C7CEEA', pageA: 1, edge: false },
+    { colorA: '#C7CEEA', pageA: 1, edge: false },
+    { colorA: '#C7CEEA', pageA: 1, edge: false },
+    { colorA: '#C7CEEA', pageA: 1, edge: false },
+    { colorA: '#C7CEEA', pageA: 1, edge: false },
+
+    { colorA: '#C7CEEA', pageA: 1, edge: false },
+    { colorA: '#C7CEEA', pageA: 1, edge: false },
+    { colorA: '#C7CEEA', pageA: 1, edge: false },
+    { colorA: '#C7CEEA', pageA: 1, edge: false },
+    { colorA: '#C7CEEA', pageA: 1, edge: false },
+    { colorA: '#C7CEEA', pageA: 1, edge: false },
+
+    // ----------------
+
+    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E87', pageB: 2, edge: true },
+    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E87', pageB: 2, edge: true },
+    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E87', pageB: 2, edge: true },
+    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E87', pageB: 2, edge: true },
+    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E87', pageB: 2, edge: true },
+    { colorA: '#C7CEEA', pageA: 1, colorB: '#7B9E87', pageB: 2, edge: true },
+
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+    { colorA: '#7B9E87', pageA: 2, edge: false },
+  ]
+
+  const colorStreams = useSharedValue(scene.map(cMap => cMap.colorA))
+  const circleColor = scene.map(cMap => useSharedValue(cMap.colorA))
+
+  const animateColor = ({
+    i,
+    absOffset,
+    colorA,
+    colorB,
+  }: {
+    i: number
+    absOffset: number
+    colorA: string
+    colorB: string
+  }) => {
+    'worklet'
+    const animatedColor = interpolateColor(absOffset, [0, 1], [colorA, colorB])
+    colorStreams.value[i] = animatedColor
+    circleColor[i].value = animatedColor
+
+    return animatedColor
+  }
+
+  const mouseUpColor = useSharedValue(scene.map(cMap => cMap.colorA))
+  const storedOffset = useSharedValue(0)
+
+  useAnimatedReaction(
+    () => offset.value,
+    offset => {
+      if (isPanningRunning.value === true) {
+        if (isMouseDownForPanning.value === true) {
+          const page = currentPage.value - 1
+          const absOffset = Math.abs(offset)
+
+          scene.forEach((cIndex, i) => {
+            if (cIndex.edge && cIndex.colorB) {
+              if (cIndex.pageA === page && direction.value === -1) {
+                const color = animateColor({
+                  i,
+                  absOffset,
+                  colorA: cIndex.colorA,
+                  colorB: cIndex.colorB,
+                })
+                mouseUpColor.value[i] = color
+              } else if (cIndex.pageB === page && direction.value === 1) {
+                const color = animateColor({
+                  i,
+                  absOffset,
+                  colorA: cIndex.colorB,
+                  colorB: cIndex.colorA,
+                })
+                mouseUpColor.value[i] = color
+              }
+            }
+          })
+
+          storedOffset.value = offset
+        }
+      }
+    },
+  )
+
+  useAnimatedReaction(
+    () => xInternal[0].value,
+    _ => {
+      if (isPanningRunning.value === false) {
+        if (isMouseDownForPanning.value === false) {
+          const leftOffset =
+            Math.abs(xInternal[0].value - target[0].x.value) / width
+          const adjustedStoredOffsetFront = Math.abs(
+            storedOffset.value + (didFlipPage.value ? 1 : 0),
+          )
+          const adjustedStoredOffsetBack = Math.abs(
+            storedOffset.value - (didFlipPage.value ? 1 : 0),
+          )
+          const adjustedPageBack =
+            currentPage.value - 1 - (didFlipPage.value ? 1 : 0)
+
+          const adjustedPageFront =
+            currentPage.value - 1 + (didFlipPage.value ? 1 : 0)
+
+          scene.forEach((cIndex, i) => {
+            if (cIndex.pageA === adjustedPageBack) {
+              if (cIndex.edge && cIndex.colorB) {
+                const animatedColor = interpolateColor(
+                  leftOffset,
+                  [adjustedStoredOffsetFront, 0],
+                  [
+                    mouseUpColor.value[i],
+                    !didFlipPage.value ? cIndex.colorA : cIndex.colorB,
+                  ],
+                )
+                colorStreams.value[i] = animatedColor
+                circleColor[i].value = animatedColor
+              }
+            } else if (cIndex.pageB === adjustedPageFront) {
+              if (cIndex.edge) {
+                const animatedColor = interpolateColor(
+                  leftOffset,
+                  [adjustedStoredOffsetBack, 0],
+                  [
+                    mouseUpColor.value[i],
+                    didFlipPage.value ? cIndex.colorA : cIndex.colorB,
+                  ],
+                )
+                colorStreams.value[i] = animatedColor
+                circleColor[i].value = animatedColor
+              }
+            }
+          })
+        }
+      }
+    },
+  )
+
+  const getAnimationConfig = () => {
+    'worklet'
+    return { duration: animationDuration.value }
+  }
 
   const interpolateDynamic = (t: number, nextPositions: number[]): number => {
     'worklet'
@@ -420,70 +603,6 @@ export const Hue: React.FC = () => {
     },
   )
 
-  // useAnimatedReaction(
-  //   () => colorsInternal[0].value,
-  //   (currentColor, previousColor) => {
-  //     if (previousColor === null) return
-
-  //     if (offset.value) {
-  //       printColor(currentColor) //, offset.value)
-  //     } else {
-  //       printColor(currentColor) //,(xInternal[0].value - target[0].x.value) / width,
-  //     }
-  //   },
-  // )
-
-  useAnimatedReaction(
-    () => direction.value,
-    (currentDirection, previousDirection) => {
-      if (currentDirection !== previousDirection) {
-        targetColors.forEach((color, i) => {
-          color.value = colorPerPage[currentPage.value - 1 - currentDirection]
-        })
-      }
-    },
-  )
-
-  useAnimatedReaction(
-    () => currentPage.value,
-    (currentPageVal, previousPageVal) => {
-      if (previousPageVal === null) return
-
-      if (currentPageVal !== previousPageVal) {
-        currentColors.forEach((color, i) => {
-          color.value = targetColors[i].value
-        })
-      }
-    },
-  )
-
-  // Panning color animation
-  const storedOffset = useSharedValue(0)
-  useAnimatedReaction(
-    () => offset.value,
-    current => {
-      if (
-        isPanningRunning.value === true &&
-        isMouseDownForPanning.value === true
-      ) {
-        currentColors.forEach((color, i) => {
-          colorsInternal[i].value = interpolateColor(
-            Math.abs(current),
-            [0, 1],
-            [color.value, targetColors[i].value],
-          )
-        })
-        storedOffset.value = current
-      } else {
-        targetColors.forEach((color, i) => {
-          color.value = currentColors[i].value
-        })
-      }
-    },
-  )
-
-  // Snap back color animation
-  const didFlipPage = useSharedValue(false)
   useAnimatedReaction(
     () => currentPage.value,
     (current, previous) => {
@@ -493,28 +612,6 @@ export const Hue: React.FC = () => {
         didFlipPage.value = true
       } else {
         didFlipPage.value = false
-      }
-    },
-  )
-
-  useAnimatedReaction(
-    () => xInternal[0].value,
-    () => {
-      if (isPanningRunning.value === false) {
-        if (isMouseDownForPanning.value === false) {
-          colorsInternal.forEach((color, i) => {
-            colorsInternal[i].value = interpolateColor(
-              Math.abs(xInternal[0].value - target[0].x.value) / width,
-              [
-                didFlipPage.value
-                  ? 1 - Math.abs(storedOffset.value)
-                  : Math.abs(storedOffset.value),
-                0,
-              ],
-              [colorsInternal[i].value, targetColors[i].value],
-            )
-          })
-        }
       }
     },
   )
@@ -596,7 +693,7 @@ export const Hue: React.FC = () => {
       isPanningRunning.value = true
       isMouseDownForPanning.value = true
       offset.value = 0
-      storedOffset.value = 0
+      // storedOffset.value = 0
       direction.value = 0
       _direction.value = 0
       animationDuration.value = 500
@@ -727,17 +824,13 @@ export const Hue: React.FC = () => {
     })),
   )
 
-  const derivedColor = useDerivedValue(() =>
-    derivedVertices.value.map(() => colorsInternal[0].value),
-  )
-
   return (
     <View style={{ flex: 1 }}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <GestureDetector gesture={pan}>
           <Canvas style={{ flex: 1, backgroundColor: 'white' }}>
             <HueBackground
-              colors={derivedColor}
+              colors={colorStreams}
               target={target}
               derivedVertices={derivedVertices}
               debug={debug}
@@ -749,7 +842,7 @@ export const Hue: React.FC = () => {
                   cx={x}
                   cy={yInternal[i]}
                   r={20}
-                  color={colorsInternal[0]}>
+                  color={circleColor[i]}>
                   <Paint color="black" style="stroke" strokeWidth={1} />
                 </Circle>
               ))
@@ -766,15 +859,23 @@ export const Hue: React.FC = () => {
           top: height - 30,
           left: 0,
           width: width,
-          height: 50,
+          height: 60,
           backgroundColor: 'rgba(255, 255, 255, 0.5)',
+          flexDirection: 'row',
         }}>
         <View
           style={{
-            top: 0,
+            top: 5,
             left: 30,
           }}>
           <Text>{`${currentPageDisplay} / ${pages}`}</Text>
+        </View>
+        <View
+          style={{
+            top: 0,
+            left: 50,
+          }}>
+          <Button title="🐛" onPress={() => setDebug(!debug)} />
         </View>
       </View>
     </View>
