@@ -229,7 +229,7 @@ export const Hue: React.FC = () => {
   const { width, height } = useWindowDimensions()
   const [debug, setDebug] = useState(true)
 
-  const autoScrollThreshold = 0.3
+  const autoScrollThreshold = 0.4
 
   const cols = 3,
     rows = 5,
@@ -251,9 +251,10 @@ export const Hue: React.FC = () => {
     gridStreams.forEach((stream, j) => {
       stream.forEach((p, i) => {
         const isFirstPageEdge = j < rows + 1
-        const isLastMostPageEdge = j >= gridStreams.length - cols * (rows + 1)
+        const isLastMostPageEdge = j >= gridStreams.length - rows * rows
         const isTopPosition = p.y === 0
         const isBottomPosition = p.y === height
+
         if (
           isTopPosition ||
           isBottomPosition ||
@@ -734,57 +735,10 @@ export const Hue: React.FC = () => {
     },
   )
 
-  const swipeActive = useSharedValue(false)
-  const panActive = useSharedValue(false)
-
-  // useAnimatedReaction(
-  //   () => offset.value,
-  //   offset => {
-  //     console.log('offset', offset)
-  //   },
-  // )
-
-  const isSwipping = useSharedValue(false)
-  const swipe = Gesture.Pan()
-    .onStart(() => {
-      if (panActive.value) return
-      isPanningRunning.value = true
-      isMouseDownForPanning.value = true
-      offset.value = 0
-      storedOffset.value = 0
-      direction.value = 0
-      _direction.value = 0
-      animationDuration.value = 500
-      didFlipPage.value = false
-
-      console.log('start swipe')
-    })
-    .onUpdate(event => {
-      if (panActive.value) return
-      if (isSwipping.value) return
-
-      if (direction.value === 0) {
-        direction.value = event.velocityX > 0 ? 1 : -1
-      }
-
-      offset.value = withTiming(
-        direction.value,
-        { duration: animationDuration.value },
-        () => {
-          isMouseDownForPanning.value = false
-          panActive.value = false
-          isSwipping.value = false
-        },
-      )
-      isSwipping.value = true
-    })
-
+  const swiping = useSharedValue(false)
   const pan = Gesture.Pan()
-    .activateAfterLongPress(0.08 * 1000)
+    .minDistance(40)
     .onStart(() => {
-      if (swipeActive.value) return
-      panActive.value = true
-      console.log('start panning')
       isPanningRunning.value = true
       isMouseDownForPanning.value = true
       offset.value = 0
@@ -795,7 +749,6 @@ export const Hue: React.FC = () => {
       didFlipPage.value = false
     })
     .onUpdate(event => {
-      if (swipeActive.value) return
       _direction.value = event.velocityX > 0 ? 1 : -1
 
       if (direction.value === 0) {
@@ -826,16 +779,34 @@ export const Hue: React.FC = () => {
         return
       }
 
+      if (swiping.value) return
+
       if (isPanningRunning.value == false) {
         return
       } else {
+        // NOTE: if quick swipe
+        if (Math.abs(event.velocityX) > 1000) {
+          animationDuration.value = 500
+          swiping.value = true
+          offset.value = withTiming(
+            direction.value,
+            getAnimationConfig(),
+            () => {
+              swiping.value = false
+              isMouseDownForPanning.value = false
+            },
+          )
+
+          return
+        }
+
         offset.value = event.translationX / width
       }
     })
     .onEnd(() => {
-      if (swipeActive.value) return
+      if (swiping.value) return
+
       isMouseDownForPanning.value = false
-      panActive.value = false
     })
 
   useAnimatedReaction(
@@ -922,12 +893,10 @@ export const Hue: React.FC = () => {
     })),
   )
 
-  const composed = Gesture.Simultaneous(pan, swipe)
-
   return (
     <View style={{ flex: 1 }}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <GestureDetector gesture={composed}>
+        <GestureDetector gesture={pan}>
           <Canvas style={{ flex: 1, backgroundColor: 'white' }}>
             <HueBackground
               colors={colorStreams}
